@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:get_it/get_it.dart';
+import 'package:el_moza3/services/database_service.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/utils/whatsapp_helper.dart';
