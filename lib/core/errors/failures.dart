@@ -2,31 +2,12 @@
 abstract class Failure {
   final String message;
   final String? code;
+  final bool requiresVerification = false;
   
   const Failure({required this.message, this.code});
   
   @override
   String toString() => 'Failure: $message (code: $code)';
-}
-
-/// Server-related failures
-class ServerFailure extends Failure {
-  const ServerFailure({required super.message, super.code});
-}
-
-/// Cache-related failures
-class CacheFailure extends Failure {
-  const CacheFailure({required super.message, super.code});
-}
-
-/// Network-related failures
-class NetworkFailure extends Failure {
-  const NetworkFailure({required super.message, super.code});
-}
-
-/// Authentication failures
-class AuthFailure extends Failure {
-  const AuthFailure({required super.message, super.code});
 }
 
 /// Validation failures
