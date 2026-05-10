@@ -1,37 +1,32 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
-/// Simple connectivity check - lightweight, minimal
-/// Does NOT redirect or block - just shows an optional banner
+/// Simple connectivity check - lightweight
 class ConnectivityService {
-  // Private constructor
   ConnectivityService._();
   
-  // Singleton access
   static final ConnectivityService _instance = ConnectivityService._();
   static ConnectivityService get instance => _instance;
 
-  // Current state (default to true for optimistic UX)
   bool _isOnline = true;
   bool get isOnline => _isOnline;
   
-  // Stream for listening
-  final _controller = StreamController<bool>.broadcast();
+  final StreamController<bool> _controller = StreamController<bool>.broadcast();
   Stream<bool> get stream => _controller.stream;
 
-  // Initialize (call once from main.dart)
   Future<void> init() async {
-    _check();
-    Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+    await _check();
+    Connectivity().onConnectivityChanged.listen(_onChanged);
   }
   
-  void _check() async {
+  Future<void> _check() async {
     final results = await Connectivity().checkConnectivity();
-    _onConnectivityChanged(results);
+    _onChanged(results);
   }
   
-  void _onConnectivityChanged(List<ConnectivityResult> results) {
+  void _onChanged(List<ConnectivityResult> results) {
     final wasOnline = _isOnline;
     _isOnline = results.isNotEmpty && !results.contains(ConnectivityResult.none);
     
@@ -40,14 +35,14 @@ class ConnectivityService {
     }
   }
   
-  /// Force refresh
-  Future<void> refresh() => _check();
+  Future<void> refresh() async {
+    await _check();
+  }
   
   void dispose() => _controller.close();
 }
 
 /// Banner widget showing offline status
-/// Use this INSIDE your pages - NOT as a wrapper that redirects
 class OfflineBanner extends StatelessWidget {
   final Widget child;
   
