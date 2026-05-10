@@ -12,6 +12,7 @@ import '../../features/listings/data/repositories/listing_repository_impl.dart';
 import '../../features/user_profile/data/datasources/user_firestore_datasource.dart';
 import '../../features/user_profile/domain/repositories/user_repository.dart';
 import '../../features/user_profile/data/repositories/user_repository_impl.dart';
+import '../../services/database_service.dart';
 
 final getIt = GetIt.instance;
 
@@ -55,5 +56,10 @@ Future<void> initializeDependencies() async {
   
   getIt.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(getIt<UserFirestoreDataSource>()),
+  );
+
+  // Legacy services (temp - migrate to repositories later)
+  getIt.registerLazySingleton<DatabaseService>(
+    () => DatabaseService(),
   );
 }
