@@ -461,7 +461,7 @@ class _OldLoginScreenState extends State<_OldLoginScreen> {
     setState(() => _loading = true);
 
     try {
-      final result = await getIt<AuthRepository>().login(
+      final result = await getIt<AuthRepository>().signInWithEmail(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
       );
@@ -726,7 +726,7 @@ class _OldRegisterScreenState extends State<_OldRegisterScreen> {
     setState(() => _loading = true);
 
     try {
-      final result = await getIt<AuthRepository>().register(
+      final result = await getIt<AuthRepository>().registerWithEmail(
         name: _nameCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,

@@ -1,6 +1,13 @@
 import '../entities/auth_user.dart';
 import '../../../../core/errors/failures.dart';
 
+/// Extension to provide AuthResult-like interface
+extension AuthRepositoryResultExt on ({AuthUser? user, Failure? failure}) {
+  bool get isSuccess => failure == null && user != null;
+  bool get requiresVerification => failure is AuthFailure && (failure as AuthFailure).requiresVerification;
+  String? get errorMessage => failure?.message;
+}
+
 /// Abstract auth repository - NO Firebase code here
 /// This is the contract that the data layer must implement
 abstract class AuthRepository {
