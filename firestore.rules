@@ -41,12 +41,11 @@ service cloud.firestore {
     // ==================== CHATS ====================
     
     match /chats/{chatId} {
-      // Single document access (get): Check membership via resource
       // Allow get if document doesn't exist yet (for getOrCreate pattern)
       allow get: if hasAuth()
         && (resource == null || request.auth.uid in resource.data.participants);
       
-      // Allow list if document doesn't exist yet
+      // Collection query (list): Must be participant
       allow list: if hasAuth() && (resource == null || request.auth.uid in resource.data.participants);
       
       // Create: must have exactly 2 participants and be one of them
@@ -68,8 +67,7 @@ service cloud.firestore {
       
       // Read single document: Must be authenticated
       allow get: if hasAuth()
-        && (resource == null || request.auth.uid in resource.data.participants);
-  && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
       // Collection list: Verify parent chat membership via get()
       allow list: if hasAuth() && exists(/databases/$(database)/documents/chats/$(chatId)) 
