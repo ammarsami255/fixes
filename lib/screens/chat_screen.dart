@@ -356,19 +356,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isOtherUserOnline = false;
   DateTime? _otherUserLastSeen;
   StreamSubscription? _presenceSub;
-  late Stream<List<Map<String, dynamic>>> _messagesStream;
+  late Stream<List<Message>> _messagesStream;
 
   @override
   void initState() {
     super.initState();
     _messagesStream = getIt<ChatRepository>().getMessages(widget.chatId);
     _loadParticipantDetails();
-    _setupPresenceListener();
+    // _setupPresenceListener(); // TODO: implement presence
     getIt<ChatRepository>().resetUnreadCount(widget.chatId);
   }
 
   void _setupPresenceListener() {
-    _presenceSub = getIt<ChatFirestoreDataSource>().getUserPresenceStream(widget.otherUserId)
+    _presenceSub = Stream.empty(); // TODO: presence not implemented
         .listen((presence) {
       if (mounted) {
         setState(() {
@@ -381,19 +381,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Future<void> _loadParticipantDetails() async {
     try {
-      final chatData = await getIt<ChatRepository>().getChat(
-        widget.chatId,
-      );
-      if (chatData != null) {
-        final participantNames =
-            chatData['participantNames'] as Map<dynamic, dynamic>? ?? {};
-        _otherUserName =
-            participantNames[widget.otherUserId] as String? ?? 'User';
-
-        final participantProfiles =
-            chatData['participantProfiles'] as Map<dynamic, dynamic>? ?? {};
-        _otherUserProfileImage =
-            participantProfiles[widget.otherUserId] as String?;
+      final result = await getIt<ChatRepository>().getChat(widget.chatId);
+      final chat = result.chat;
+      if (chat != null) {
+        _otherUserName = chat.lastMessage ?? 'User';
       }
     } catch (e) {
       // Keep defaults
