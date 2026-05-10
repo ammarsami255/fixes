@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/listing_service.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
+import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
+import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 import 'package:el_moza3/widget/service_card.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 import 'package:el_moza3/screens/notifications_screen.dart';
@@ -395,17 +398,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 
   Widget _buildListings() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: ListingService.getListings(
+    return StreamBuilder<List<Listing>>(
+      stream: getIt<ListingRepository>().getListings(
         category: _selectedCategoryLabel == 'الكل'
             ? null
             : _selectedCategoryLabel,
-        location: _filterLocation,
-        minPrice: _minPrice,
-        maxPrice: _maxPrice,
-        searchQuery: _searchCtrl.text.trim().isEmpty
-            ? null
-            : _searchCtrl.text.trim(),
       ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {

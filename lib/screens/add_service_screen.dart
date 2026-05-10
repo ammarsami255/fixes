@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/listing_service.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
+import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
+import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 
 class AddServiceScreen extends StatefulWidget {
   const AddServiceScreen({super.key, this.onClose});
@@ -99,23 +102,21 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       final normalized = _normalizePhone(_phoneCtrl.text.trim(), _countryCode);
       final fullPhone = '$_countryCode$normalized';
 
-      final err = await ListingService.addListing(
+      final result = await getIt<ListingRepository>().createListing(
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
-        category: _category,
-        type: _type,
         price: _priceCtrl.text.trim().isEmpty
-            ? "Negotiable"
-            : _priceCtrl.text.trim(),
+            ? 0.0
+            : double.parse(_priceCtrl.text.trim()),
+        category: _category,
         location: _location,
-        phone: fullPhone,
       );
 
       if (!mounted) return;
       setState(() => _loading = false);
 
-      if (err != null) {
-        _showError(err);
+      if (result.failure != null) {
+        _showError(result.failure!.message);
       } else {
         _showSuccess('تم نشر إعلانك!');
         _clearForm();
