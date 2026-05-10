@@ -185,7 +185,6 @@ class _ChatTile extends StatefulWidget {
 
 class _ChatTileState extends State<_ChatTile> {
   String _userName = '';
-  String? _profileImage;
 
   @override
   void initState() {
@@ -198,10 +197,7 @@ class _ChatTileState extends State<_ChatTile> {
     final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
     final result = await getIt<UserRepository>().getUserProfile(otherUserId);
     if (mounted && result.user != null) {
-      setState(() {
-        _userName = result.user!.name;
-        _profileImage = result.user!.profileImage;
-      });
+      setState(() => _userName = result.user!.name);
     }
   }
 
@@ -209,10 +205,8 @@ class _ChatTileState extends State<_ChatTile> {
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
-
     final lastMessage = widget.chat.lastMessage ?? '';
     final lastTime = widget.chat.lastMessageTime;
-
     final unreadCount = widget.chat.unreadCount[currentUserId] ?? 0;
 
     return _ChatTileUI(
@@ -221,7 +215,7 @@ class _ChatTileState extends State<_ChatTile> {
       lastTime: lastTime,
       chatId: widget.chat.id,
       otherUserId: otherUserId,
-      profileImage: _profileImage,
+      profileImage: null,
       unreadCount: unreadCount,
     );
   }
