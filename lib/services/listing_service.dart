@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'logger_service.dart';
+import 'rate_limiter_service.dart';
 
 /// Custom exception for listing operations
 class ListingException implements Exception {
@@ -132,18 +134,26 @@ class ListingService {
   }
 
   /// Get current user's listings only
-  static Stream<List<Map<String, dynamic>>> getMyListings() {
+  static Stream<List<Map<String, dynamic>>> getMyListings({int? limit}) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     if (uid == null || uid.isEmpty) {
       return Stream.value([]);
     }
 
-    return _db
+    var query = _db
         .collection('listings')
         .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
+        .orderBy('createdAt', descending: true);
+    
+    // Apply limit for scalability
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
+    } else {
+      query = query.limit(100); // Default max for my listings
+    }
+
+    return query.snapshots()
         .map(
           (snap) => snap.docs.map((doc) {
             final data = doc.data();
@@ -164,6 +174,12 @@ class ListingService {
     required String phone,
     List<String>? imageUrls,
   }) async {
+    // Rate limiting: prevent spam listings
+    if (!RateLimiter.canCreateListing) {
+      AppLogger.warning('Listing creation blocked - cooldown active');
+      return 'Please wait before creating another listing';
+    }
+
     // Validate inputs
     if (title.trim().isEmpty || title.trim().length > 200) {
       return 'Invalid title';
@@ -225,9 +241,17 @@ class ListingService {
     await _db.collection('listings').doc(id).delete();
   }
 
-  /// FIXED: Use atomic increment for view count
+  /// FIXED: Use atomic increment for view count with rate limiting
   static Future<void> incrementViewCount(String listingId) async {
     if (listingId.isEmpty) return;
+    
+    // Rate limiting: prevent view count abuse
+    if (!RateLimiter.canIncrementViewCount) {
+      return; // Silently skip - not critical
+    }
+    if (RateLimiter.isViewCountRateLimited) {
+      return; // Silently skip - not critical
+    }
     
     try {
       await _db.collection('listings').doc(listingId).update({

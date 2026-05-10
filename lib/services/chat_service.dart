@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:el_moza3/models/chat_model.dart';
+import 'logger_service.dart';
+import 'rate_limiter_service.dart';
 
 /// Custom exception for chat operations
 class ChatException implements Exception {
@@ -225,6 +227,16 @@ class ChatService {
   }) async {
     final userId = _currentUserId;
     if (userId == null || content.trim().isEmpty) return null;
+
+    // Rate limiting: prevent spam
+    if (!RateLimiter.canSendMessage) {
+      AppLogger.warning('Message send blocked - cooldown active');
+      return null;
+    }
+    if (RateLimiter.isMessageRateLimited) {
+      AppLogger.warning('Message send blocked - rate limit exceeded');
+      return null;
+    }
 
     // Retry logic
     for (int attempt = 0; attempt < _maxRetries; attempt++) {
