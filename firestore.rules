@@ -66,7 +66,8 @@ service cloud.firestore {
       // For single doc access: verify user is authenticated
       
       // Read single document: Must be authenticated
-      allow get: if hasAuth();
+      allow get: if hasAuth()
+  && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
       // Collection list: Verify parent chat membership via get()
       allow list: if hasAuth() && exists(/databases/$(database)/documents/chats/$(chatId)) 
