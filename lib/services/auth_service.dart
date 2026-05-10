@@ -296,8 +296,9 @@ class AuthService {
     await _googleSignIn.signOut();
     await _auth.signOut();
     
-    // Clear caches on logout
+    // Clear all caches on logout
     ChatService.clearUserCache();
+    DatabaseService.clearUserCache();
   }
 
   /// Send password reset email

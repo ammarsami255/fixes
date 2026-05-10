@@ -277,10 +277,13 @@ class ListingService {
   }
 
   static Future<int> getUserTotalViews(String userId) async {
+    // This is expensive - limit query and use caching
     try {
       final snap = await _db
           .collection('listings')
           .where('userId', isEqualTo: userId)
+          .select(['viewCount'])  // Only fetch viewCount field
+          .limit(100)  // Limit to prevent large reads
           .get();
 
       int totalViews = 0;

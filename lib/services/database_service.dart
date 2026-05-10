@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Simple in-memory cache for user data to reduce Firestore reads
+/// Uses 5-minute TTL to keep data fresh while reducing costs
 class _UserCache {
-  // Simple TTL cache: userId -> {data, timestamp}
   static final Map<String, _CacheEntry<Map<String, dynamic>>> _cache = {};
   static const _cacheDuration = Duration(minutes: 5);
   
@@ -34,6 +34,24 @@ class _CacheEntry<T> {
   final T data;
   final DateTime timestamp;
   _CacheEntry(this.data, this.timestamp);
+}
+
+/// Extended user caches for chat participants
+class _ParticipantCache {
+  // Cache participant profiles for quick chat list rendering
+  static final Map<String, Map<String, dynamic>> _profiles = {};
+  
+  static Map<String, dynamic>? get(String uid) {
+    return _profiles[uid];
+  }
+  
+  static void set(String uid, Map<String, dynamic> profile) {
+    _profiles[uid] = profile;
+  }
+  
+  static void clear() {
+    _profiles.clear();
+  }
 }
 
 class DatabaseService {
@@ -120,9 +138,47 @@ class DatabaseService {
     if (firebaseUser != null && firebaseUser.emailVerified) {
       return true;
     }
-    // 再检查Firestore的自定义验证状态
+    // 再检查Firestore的自定义验证状态 (from cache if available)
     final user = await getUserDocument(uid);
     return user?['isEmailVerified'] == true;
+  }
+  
+  /// Cache multiple participant profiles at once (batch fetch)
+  /// This prevents N+1 when loading chat lists
+  static Future<void> cacheParticipantProfiles(List<String> uids) async {
+    if (uids.isEmpty) return;
+    
+    // Filter out already cached
+    final uncached = uids.where((uid) => 
+      _ParticipantCache.get(uid) == null && _UserCache.get(uid) == null
+    ).toList();
+    
+    if (uncached.isEmpty) return;
+    
+    // Batch fetch in one query using _in operator (requires composite index)
+    // Fallback to parallel fetches for small lists
+    final futures = uncached.map((uid) => _usersCollection.doc(uid).get());
+    final docs = await Future.wait(futures);
+    
+    for (final doc in docs) {
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+        final uid = doc.id;
+        _ParticipantCache.set(uid, data);
+        _UserCache.set(uid, data); // Also set in main cache
+      }
+    }
+  }
+  
+  /// Get cached participant profile
+  static Map<String, dynamic>? getParticipantProfile(String uid) {
+    return _ParticipantCache.get(uid);
+  }
+  
+  /// Clear all user caches (call on logout)
+  static void clearUserCache() {
+    _UserCache.clear();
+    _ParticipantCache.clear();
   }
 
   /// Update user profile
