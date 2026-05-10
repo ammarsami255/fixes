@@ -200,7 +200,7 @@ class _ChatTileState extends State<_ChatTile> {
     if (mounted && result.user != null) {
       setState(() {
         _userName = result.user!.name;
-        _profileImage = result.user!.profileImageUrl;
+        _profileImage = result.user!.profileImage;
       });
     }
   }
@@ -399,7 +399,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (result.user != null) {
         setState(() {
           _otherUserName = result.user!.name;
-          _otherUserProfileImage = result.user!.profileImageUrl;
+          _otherUserProfileImage = result.user!.profileImage;
           _isLoading = false;
         });
         return;
