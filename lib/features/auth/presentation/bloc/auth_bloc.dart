@@ -9,8 +9,26 @@ import 'auth_state_event.dart';
 /// Auth BLoC - handles all authentication logic
 /// No Firebase code here - only uses use cases
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  /// Late final fields - initialized in constructor
+  late final AuthRepository _authRepository;
+  late final GetCurrentUserUseCase _getCurrentUser;
+  late final SignInWithEmailUseCase _signInWithEmail;
+  late final SignInWithGoogleUseCase _signInWithGoogle;
+  late final RegisterWithEmailUseCase _registerWithEmail;
+  late final SignOutUseCase _signOut;
+  late final SendPasswordResetUseCase _sendPasswordReset;
+
   AuthBloc()
       : super(AuthInitial()) {
+    // Initialize fields before auto-checking auth status
+    _authRepository = getIt<AuthRepository>();
+    _getCurrentUser = GetCurrentUserUseCase(_authRepository);
+    _signInWithEmail = SignInWithEmailUseCase(_authRepository);
+    _signInWithGoogle = SignInWithGoogleUseCase(_authRepository);
+    _registerWithEmail = RegisterWithEmailUseCase(_authRepository);
+    _signOut = SignOutUseCase(_authRepository);
+    _sendPasswordReset = SendPasswordResetUseCase(_authRepository);
+
     on<AuthCheckRequested>(_onCheckRequested);
     on<AuthSignInWithEmailRequested>(_onSignInWithEmail);
     on<AuthSignInWithGoogleRequested>(_onSignInWithGoogle);
@@ -21,17 +39,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     // Auto-check auth status on initialization
     add(AuthCheckRequested());
   }
-
-  /// Get repository from DI container
-  AuthRepository get _authRepository => getIt<AuthRepository>();
-
-  /// Use cases
-  GetCurrentUserUseCase get _getCurrentUser => GetCurrentUserUseCase(_authRepository);
-  SignInWithEmailUseCase get _signInWithEmail => SignInWithEmailUseCase(_authRepository);
-  SignInWithGoogleUseCase get _signInWithGoogle => SignInWithGoogleUseCase(_authRepository);
-  RegisterWithEmailUseCase get _registerWithEmail => RegisterWithEmailUseCase(_authRepository);
-  SignOutUseCase get _signOut => SignOutUseCase(_authRepository);
-  SendPasswordResetUseCase get _sendPasswordReset => SendPasswordResetUseCase(_authRepository);
 
   Future<void> _onCheckRequested(
     AuthCheckRequested event,
