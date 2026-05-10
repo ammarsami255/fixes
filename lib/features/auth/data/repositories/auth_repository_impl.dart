@@ -72,6 +72,17 @@ class AuthRepositoryImpl implements AuthRepository {
       // Reload to get verification status
       await _dataSource.reload();
 
+      // Check if email is verified
+      if (!user.emailVerified) {
+        return (
+          user: AuthUser.empty,
+          failure: EmailVerificationFailure(
+            message: 'Please verify your email to continue.',
+            code: 'email_not_verified',
+          )
+        );
+      }
+
       final authUser = AuthUserModel.fromFirebaseUser(user).toEntity();
       return (user: authUser, failure: null);
     } on FirebaseAuthException catch (e) {

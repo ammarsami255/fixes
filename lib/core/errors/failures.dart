@@ -2,7 +2,6 @@
 abstract class Failure {
   final String message;
   final String? code;
-  final bool requiresVerification = false;
   
   const Failure({required this.message, this.code});
   
@@ -18,6 +17,11 @@ class ServerFailure extends Failure {
 /// Authentication failures
 class AuthFailure extends Failure {
   const AuthFailure({required super.message, super.code});
+}
+
+/// Email verification required failure
+class EmailVerificationFailure extends AuthFailure {
+  const EmailVerificationFailure({required super.message, super.code});
 }
 
 /// Validation failures
