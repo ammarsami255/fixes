@@ -40,4 +40,7 @@ abstract class AuthRepository {
 
   /// Check if currently logged in
   bool get isLoggedIn;
+
+  /// Get current user ID directly (sync)
+  String? get currentUserId;
 }

@@ -17,6 +17,9 @@ class AuthRepositoryImpl implements AuthRepository {
   bool get isLoggedIn => _dataSource.isLoggedIn;
 
   @override
+  String? get currentUserId => _dataSource.currentUser?.uid;
+
+  @override
   Stream<AuthUser?> get authStateChanges =>
       _dataSource.authStateChanges.map((user) {
         if (user == null) return null;

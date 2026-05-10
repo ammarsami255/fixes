@@ -6,6 +6,9 @@ import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/features/chat/domain/entities/chat_entity.dart';
+import 'package:el_moza3/features/chat/data/datasources/chat_firestore_datasource.dart';
+import 'package:el_moza3/features/chat/data/models/chat_model.dart';
+import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -358,14 +361,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _messagesStream = ChatService.getMessages(widget.chatId);
+    _messagesStream = getIt<ChatRepository>().getMessages(widget.chatId);
     _loadParticipantDetails();
     _setupPresenceListener();
-    ChatService.resetUnreadCount(widget.chatId);
+    getIt<ChatRepository>().resetUnreadCount(widget.chatId);
   }
 
   void _setupPresenceListener() {
-    _presenceSub = ChatService.getUserPresenceStream(widget.otherUserId)
+    _presenceSub = getIt<ChatFirestoreDataSource>().getUserPresenceStream(widget.otherUserId)
         .listen((presence) {
       if (mounted) {
         setState(() {
@@ -378,7 +381,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Future<void> _loadParticipantDetails() async {
     try {
-      final chatData = await ChatService.getChatWithParticipantDetails(
+      final chatData = await getIt<ChatRepository>().getChat(
         widget.chatId,
       );
       if (chatData != null) {
@@ -435,7 +438,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _messageCtrl.clear();
 
     try {
-      await ChatService.sendMessage(chatId: widget.chatId, content: content);
+      await getIt<ChatRepository>().sendMessage(chatId: widget.chatId, content: content);
     } finally {
       if (mounted) {
         setState(() => _sending = false);
@@ -508,7 +511,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
                 final messages = snapshot.data ?? [];
                 
-                final currentUserId = AuthService.currentUser?.uid;
+                final currentUserId = getIt<AuthRepository>().currentUserId?.uid;
                 final unreadMessageIds = messages
                     .where((m) => m['senderId'] != currentUserId && m['isSeen'] == false)
                     .map((m) => m['id'] as String)
@@ -517,7 +520,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 if (unreadMessageIds.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) {
-                      ChatService.markMessagesAsSeen(widget.chatId, unreadMessageIds);
+                      getIt<ChatRepository>().markMessagesAsSeen(widget.chatId, unreadMessageIds);
                     }
                   });
                 }
@@ -539,7 +542,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isMe =
-                        message['senderId'] == AuthService.currentUser?.uid;
+                        message['senderId'] == getIt<AuthRepository>().currentUserId?.uid;
                     return _MessageBubble(
                       content: message['content'] ?? '',
                       isMe: isMe,
