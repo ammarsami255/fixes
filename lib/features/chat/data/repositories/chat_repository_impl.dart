@@ -10,12 +10,12 @@ class ChatRepositoryImpl implements ChatRepository {
   ChatRepositoryImpl(this._dataSource);
 
   @override
-  Future<({Chat?, Failure?}) getChat(String chatId) {
+  Future<({Chat? chat, Failure? failure})> getChat(String chatId) {
     return _dataSource.getChat(chatId);
   }
 
   @override
-  Future<({String? chatId, Failure?}) getOrCreateChat({
+  Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
   }) {
@@ -36,7 +36,7 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<({String? messageId, Failure?}) sendMessage({
+  Future<({String? messageId, Failure? failure})> sendMessage({
     required String chatId,
     required String content,
     MessageType type,

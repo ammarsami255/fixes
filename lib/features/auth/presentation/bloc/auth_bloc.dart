@@ -152,4 +152,3 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 }
 
 /// Type alias for getting AuthRepository from DI container
-typedef AuthRepositoryImplGetter = AuthRepositoryImpl Function();

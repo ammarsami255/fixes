@@ -8,7 +8,7 @@ class SignInWithEmailUseCase {
 
   SignInWithEmailUseCase(this._repository);
 
-  Future<({AuthUser user, Failure?}) call({
+  Future<({AuthUser user, Failure? failure})> call({
     required String email,
     required String password,
   }) {
@@ -22,7 +22,7 @@ class SignInWithGoogleUseCase {
 
   SignInWithGoogleUseCase(this._repository);
 
-  Future<({AuthUser user, Failure?}) call() {
+  Future<({AuthUser user, Failure? failure})> call() {
     return _repository.signInWithGoogle();
   }
 }
@@ -33,7 +33,7 @@ class RegisterWithEmailUseCase {
 
   RegisterWithEmailUseCase(this._repository);
 
-  Future<({AuthUser user, Failure?}) call({
+  Future<({AuthUser user, Failure? failure})> call({
     required String name,
     required String email,
     required String password,
@@ -63,7 +63,7 @@ class GetCurrentUserUseCase {
 
   GetCurrentUserUseCase(this._repository);
 
-  Future<({AuthUser?, Failure?})> call() {
+  Future<({AuthUser? user, Failure? failure})> call() {
     return _repository.getCurrentUser();
   }
 }
@@ -96,7 +96,7 @@ class CheckUserVerifiedUseCase {
 
   CheckUserVerifiedUseCase(this._repository);
 
-  Future<({bool isVerified, Failure?})> call() {
+  Future<({bool isVerified, Failure? failure})> call() {
     return _repository.isUserVerified();
   }
 }

@@ -25,7 +25,7 @@ class ChatFirestoreDataSource {
 
   // ==================== CHAT OPERATIONS ====================
 
-  Future<({Chat?, Failure?}) getChat(String chatId) async {
+  Future<({Chat? chat, Failure? failure})> getChat(String chatId) async {
     try {
       final doc = await _chatsCollection.doc(chatId).get();
       if (!doc.exists) {
@@ -51,7 +51,7 @@ class ChatFirestoreDataSource {
     }
   }
 
-  Future<({String? chatId, Failure?}) getOrCreateChat({
+  Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
     String? otherUserName,
@@ -149,7 +149,7 @@ class ChatFirestoreDataSource {
         });
   }
 
-  Future<({String? messageId, Failure?}) sendMessage({
+  Future<({String? messageId, Failure? failure})> sendMessage({
     required String chatId,
     required String senderId,
     required String content,

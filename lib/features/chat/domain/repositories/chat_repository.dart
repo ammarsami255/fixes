@@ -5,10 +5,10 @@ import '../../../../core/errors/failures.dart';
 /// NO Firebase code here - this is the contract
 abstract class ChatRepository {
   /// Get chat by ID
-  Future<({Chat?, Failure?}) getChat(String chatId);
+  Future<({Chat? chat, Failure? failure})> getChat(String chatId);
 
   /// Get or create chat with another user
-  Future<({String? chatId, Failure?}) getOrCreateChat({
+  Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
   });
@@ -20,7 +20,7 @@ abstract class ChatRepository {
   Stream<List<Message>> getMessages(String chatId, {int limit = 50});
 
   /// Send a message
-  Future<({String? messageId, Failure?}) sendMessage({
+  Future<({String? messageId, Failure? failure})> sendMessage({
     required String chatId,
     required String content,
     MessageType type,

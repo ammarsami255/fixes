@@ -4,7 +4,7 @@ import '../../../../core/errors/failures.dart';
 /// Listing repository interface - contract for data layer
 abstract class ListingRepository {
   /// Get single listing
-  Future<({Listing?, Failure?}) getListing(String id);
+  Future<({Listing? listing, Failure? failure})> getListing(String id);
 
   /// Get all listings with filters and pagination
   Stream<List<Listing>> getListings({
@@ -13,7 +13,7 @@ abstract class ListingRepository {
   });
 
   /// Create listing
-  Future<({String? id, Failure?}) createListing({
+  Future<({String? id, Failure? failure})> createListing({
     required String title,
     required String description,
     required double price,

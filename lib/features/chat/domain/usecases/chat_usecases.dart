@@ -8,7 +8,7 @@ class GetChatUseCase {
 
   GetChatUseCase(this._repository);
 
-  Future<({Chat?, Failure?}) call(String chatId) {
+  Future<({Chat? chat, Failure? failure})> call(String chatId) {
     return _repository.getChat(chatId);
   }
 }
@@ -19,7 +19,7 @@ class GetOrCreateChatUseCase {
 
   GetOrCreateChatUseCase(this._repository);
 
-  Future<({String? chatId, Failure?}) call({
+  Future<({String? chatId, Failure? failure})> call({
     required String otherUserId,
     String? listingId,
   }) {
@@ -58,7 +58,7 @@ class SendMessageUseCase {
 
   SendMessageUseCase(this._repository);
 
-  Future<({String? messageId, Failure?}) call({
+  Future<({String? messageId, Failure? failure})> call({
     required String chatId,
     required String content,
     MessageType type = MessageType.text,
