@@ -367,17 +367,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     getIt<ChatRepository>().resetUnreadCount(widget.chatId);
   }
 
-  void _setupPresenceListener() {
-    _presenceSub = Stream.empty(); // TODO: presence not implemented
-        .listen((presence) {
-      if (mounted) {
-        setState(() {
-          _isOtherUserOnline = presence['online'] ?? false;
-          _otherUserLastSeen = presence['lastSeen'];
-        });
-      }
-    });
-  }
 
   Future<void> _loadParticipantDetails() async {
     try {
