@@ -1099,7 +1099,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       int totalViews = 0;
       for (final listing in userListings) {
-        totalViews += (listing['viewCount'] as int?) ?? 0;
+        final viewCountRaw = listing['viewCount'];
+        totalViews += viewCountRaw is int
+            ? viewCountRaw
+            : viewCountRaw is num
+                ? viewCountRaw.toInt()
+                : 0;
       }
 
       if (mounted) {

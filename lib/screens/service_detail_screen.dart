@@ -175,7 +175,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     final type = widget.item["type"] as String? ?? "";
     final title = widget.item["title"] as String? ?? "";
     final description = widget.item["description"] as String? ?? "";
-    final price = widget.item["price"] as String? ?? "";
+    final priceRaw = widget.item["price"];
+    final price = priceRaw is String
+        ? priceRaw
+        : priceRaw is num
+            ? priceRaw.toString()
+            : "";
     final location = widget.item["location"] as String? ?? "";
     final phone = widget.item["phone"] as String? ?? "";
     final userName = widget.item["userName"] as String? ?? "";

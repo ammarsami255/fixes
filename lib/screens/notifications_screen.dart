@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
@@ -20,7 +19,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
-    final userId = getIt<FirebaseAuth>().currentUser?.uid;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
       backgroundColor: AppColors.background2,
@@ -169,7 +168,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _handleTap(String notificationId, Map<String, dynamic> dataMap) async {
-    final userId = getIt<FirebaseAuth>().currentUser?.uid;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
 
     final read = dataMap['read'] as bool? ?? false;
