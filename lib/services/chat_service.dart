@@ -446,6 +446,18 @@ class ChatService {
       return [];
     }
   }
+
+  /// Get chat with participant details
+  static Future<Map<String, dynamic>?> getChatWithParticipantDetails(String chatId) async {
+    try {
+      final doc = await _chatsCollection.doc(chatId).get();
+      if (!doc.exists) return null;
+      return doc.data();
+    } catch (e) {
+      _logError('getChatWithParticipantDetails', e);
+      return null;
+    }
+  }
   
   /// Clean up resources - call this when done with the service
   static void dispose() {
