@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
+import 'logger_service.dart';
+import 'offline_queue_service.dart';
 
-/// Simple connectivity check - lightweight
+/// Simple connectivity check with auto-retry
 class ConnectivityService {
   ConnectivityService._();
   
@@ -16,9 +17,12 @@ class ConnectivityService {
   final StreamController<bool> _controller = StreamController<bool>.broadcast();
   Stream<bool> get stream => _controller.stream;
 
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
+  bool _wasOffline = false;
+
   Future<void> init() async {
     await _check();
-    Connectivity().onConnectivityChanged.listen(_onChanged);
+    _subscription = Connectivity().onConnectivityChanged.listen(_onChanged);
   }
   
   Future<void> _check() async {
@@ -32,6 +36,25 @@ class ConnectivityService {
     
     if (wasOnline != _isOnline) {
       _controller.add(_isOnline);
+      
+      // Auto-retry when coming back online
+      if (_isOnline && _wasOffline) {
+        _triggerRetry();
+      }
+      
+      if (!_isOnline) {
+        _wasOffline = true;
+      }
+    }
+  }
+  
+  void _triggerRetry() {
+    if (!ConnectivityService.instance.isOnline) return;
+    
+    // Retry pending messages
+    final failed = OfflineQueueService.getFailedMessages();
+    if (failed.isNotEmpty) {
+      AppLogger.info('Auto-retrying ${failed.length} messages');
     }
   }
   
@@ -39,7 +62,10 @@ class ConnectivityService {
     await _check();
   }
   
-  void dispose() => _controller.close();
+  void dispose() {
+    _subscription?.cancel();
+    _controller.close();
+  }
 }
 
 /// Banner widget showing offline status

@@ -5,6 +5,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:el_moza3/models/chat_model.dart';
 import 'logger_service.dart';
 import 'rate_limiter_service.dart';
+import 'connectivity_service.dart';
+import 'offline_queue_service.dart';
 
 /// Custom exception for chat operations
 class ChatException implements Exception {
@@ -248,21 +250,51 @@ class ChatService {
       return null;
     }
 
-    // Retry logic
+    // Generate local ID first (for offline queue)
+    final localId = OfflineQueueService.generateLocalId();
+    
+    // IMMEDIATELY queue locally for offline-first UX
+    final pendingMsg = PendingMessage(
+      localId: localId,
+      chatId: chatId,
+      senderId: userId,
+      content: content.trim(),
+      createdAt: DateTime.now(),
+      status: 'sending',
+    );
+    await OfflineQueueService.queueMessage(pendingMsg);
+    
+    // If offline, return local ID immediately
+    if (!ConnectivityService.instance.isOnline) {
+      AppLogger.info('Message queued offline: $localId');
+      return localId;
+    }
+
+    // Try to send via Firestore
+    bool success = false;
+    String? messageId;
+    
     for (int attempt = 0; attempt < _maxRetries; attempt++) {
       try {
         final chatDoc = await _chatsCollection.doc(chatId).get();
-        if (!chatDoc.exists) return null;
+        if (!chatDoc.exists) {
+          await OfflineQueueService.markAsFailed(localId);
+          return null;
+        }
 
         final participants =
             (chatDoc.data()?['participants'] as List<dynamic>?)?.cast<String>() ??
             [];
-        if (!participants.contains(userId)) return null;
+        if (!participants.contains(userId)) {
+          await OfflineQueueService.markAsFailed(localId);
+          return null;
+        }
 
         final otherUserId = participants.firstWhere((id) => id != userId, orElse: () => '');
-        if (otherUserId.isEmpty) return null;
-
-        String? messageId;
+        if (otherUserId.isEmpty) {
+          await OfflineQueueService.markAsFailed(localId);
+          return null;
+        }
 
         await _firestore.runTransaction((transaction) async {
           final chat = await transaction.get(_chatsCollection.doc(chatId));
@@ -281,6 +313,7 @@ class ChatService {
             'createdAt': FieldValue.serverTimestamp(),
             'isSeen': false,
             'seenAt': null,
+            'localId': localId, // Store for duplicate prevention
           });
           messageId = messageRef.id;
 
@@ -291,7 +324,8 @@ class ChatService {
           });
         });
 
-        return messageId;
+        success = true;
+        break;
       } catch (e) {
         _logError('sendMessage', e);
         if (attempt < _maxRetries - 1) {
@@ -299,7 +333,16 @@ class ChatService {
         }
       }
     }
-    return null;
+    
+    // Mark in queue
+    if (success) {
+      await OfflineQueueService.markAsSent(localId);
+      AppLogger.info('Message sent successfully: $messageId');
+      return messageId;
+    } else {
+      await OfflineQueueService.markAsFailed(localId);
+      return localId; // Still return localId so UI shows pending
+    }
   }
 
   static Future<String?> sendImageMessage({

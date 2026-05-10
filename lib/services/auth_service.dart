@@ -5,6 +5,7 @@ import 'database_service.dart';
 import 'notification_service.dart';
 import 'chat_service.dart';
 import 'connectivity_service.dart';
+import 'offline_queue_service.dart';
 
 /// Result of authentication operations
 class AuthResult {
@@ -334,6 +335,7 @@ class AuthService {
     // Clear all caches on logout
     ChatService.clearUserCache();
     DatabaseService.clearUserCache();
+    OfflineQueueService.clearAll();
   }
 
   /// Send password reset email

@@ -12,6 +12,7 @@ import 'package:el_moza3/services/error_handler.dart';
 import 'package:el_moza3/services/notification_service.dart';
 import 'package:el_moza3/services/chat_service.dart';
 import 'package:el_moza3/services/connectivity_service.dart';
+import 'package:el_moza3/services/offline_queue_service.dart';
 import 'package:el_moza3/features/auth/presentation/cubit/auth_cubit.dart';
 
 @pragma('vm:entry-point')
@@ -26,8 +27,11 @@ void main() async {
 
   await NotificationService.initialize();
   
-  // Initialize connectivity service (lightweight - just starts listening)
+  // Initialize connectivity service
   ConnectivityService.instance.init();
+  
+  // Initialize offline queue
+  OfflineQueueService.loadQueue();
 
   runApp(const ElMoza3App());
   WidgetsBinding.instance.addPostFrameCallback((_) {
