@@ -528,17 +528,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 return ListView.builder(
                   controller: _scrollCtrl,
                   padding: const EdgeInsets.all(16),
-                  reverse: true, // Display latest at bottom effectively
+                  reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isMe =
-                        message['senderId'] == getIt<AuthRepository>().currentUserId?.uid;
+                    final isMe = message.senderId == getIt<AuthRepository>().currentUserId;
                     return _MessageBubble(
-                      content: message['content'] ?? '',
+                      content: message.content,
                       isMe: isMe,
-                      createdAt: message['createdAt'] as Timestamp?,
-                      isSeen: message['isSeen'] ?? false,
+                      createdAt: message.createdAt,
+                      isSeen: message.isSeen,
                     );
                   },
                 );
