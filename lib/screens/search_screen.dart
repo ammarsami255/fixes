@@ -41,14 +41,14 @@ class _SearchScreenState extends State<SearchScreen> {
     "نقل ولوجستيات": Colors.red,
   };
 
-  List<Map<String, dynamic>> get _results {
+  List<Listing> get _results {
     if (_query.isEmpty) return [];
     return _all
         .where(
           (e) =>
-              (e["title"] as String? ?? "").contains(_query) ||
-              (e["category"] as String? ?? "").contains(_query) ||
-              (e["location"] as String? ?? "").contains(_query),
+              e.title.contains(_query) ||
+              (e.category ?? '').contains(_query) ||
+              (e.location ?? '').contains(_query),
         )
         .toList();
   }
@@ -175,20 +175,20 @@ class _SearchScreenState extends State<SearchScreen> {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final item = _results[index];
-                          final cat = item["category"] as String? ?? "";
+                          final cat = item.category ?? '';
                           return ServiceCard(
-                            title: item["title"] ?? "",
+                            title: item.title,
                             category: cat,
-                            price: item["price"] ?? "",
-                            location: item["location"] ?? "",
+                            price: item.price.toString(),
+                            location: item.location ?? '',
                             icon: _icons[cat] ?? Icons.miscellaneous_services,
                             color: _colors[cat] ?? AppColors.primary,
-                            type: item["type"] ?? "",
+                            type: '',
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => ServiceDetailScreen(
-                                  item: item,
+                                  item: item.toMap(),
                                   onRequireLogin: widget.onRequireLogin,
                                 ),
                               ),

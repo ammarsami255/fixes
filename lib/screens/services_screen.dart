@@ -445,15 +445,15 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 ),
                 itemBuilder: (context, index) {
                   final item = listings[index];
-                  final cat = item.category;
+                  final cat = item.category ?? '';
                   return ServiceCard(
                     title: item.title,
                     category: cat,
-                    price: item.price,
-                    location: item.location,
+                    price: item.price.toString(),
+                    location: item.location ?? '',
                     icon: _categoryIcons[cat] ?? Icons.miscellaneous_services,
                     color: _categoryColors[cat] ?? AppColors.primary,
-                    type: item.type,
+                    type: '',
                     onTap: () {
                       // Show listing detail - public access allowed
                       Navigator.push(

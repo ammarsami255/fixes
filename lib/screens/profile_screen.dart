@@ -301,9 +301,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildMyListingCard(Listing listing) {
     final title = listing.title;
-    final category = listing.category;
-    final price = listing.price;
-    final location = listing.location;
+    final category = listing.category ?? '';
+    final price = listing.price.toString();
+    final location = listing.location ?? '';
     final listingId = listing.id;
     final imageUrl = listing.imageUrl;
 
@@ -531,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => ServiceDetailScreen(
-                              item: listingData,
+                              item: result.listing!.toMap(),
                               onRequireLogin: widget.onRequireLogin,
                             ),
                           ),
