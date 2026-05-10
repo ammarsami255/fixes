@@ -20,13 +20,6 @@ abstract class AuthRepository {
     required String password,
   });
 
-  /// Sign in with email and password (alias)
-  Future<({AuthUser user, Failure? failure})> login({
-    required String email,
-    required String password,
-  }) =>
-      signInWithEmail(email: email, password: password);
-
   /// Sign in with Google
   Future<({AuthUser user, Failure? failure})> signInWithGoogle();
 
@@ -36,14 +29,6 @@ abstract class AuthRepository {
     required String email,
     required String password,
   });
-
-  /// Register with email and password (alias)
-  Future<({AuthUser user, Failure? failure})> register({
-    required String name,
-    required String email,
-    required String password,
-  }) =>
-      registerWithEmail(name: name, email: email, password: password);
 
   /// Sign out
   Future<Failure?> signOut();

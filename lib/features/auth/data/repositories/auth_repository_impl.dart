@@ -182,21 +182,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<({AuthUser user, Failure? failure})> login({
-    required String email,
-    required String password,
-  }) =>
-      signInWithEmail(email: email, password: password);
-
-  @override
-  Future<({AuthUser user, Failure? failure})> register({
-    required String name,
-    required String email,
-    required String password,
-  }) =>
-      registerWithEmail(name: name, email: email, password: password);
-
-  @override
   Future<Failure?> signOut() async {
     try {
       await _dataSource.signOut();
