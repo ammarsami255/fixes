@@ -156,32 +156,50 @@ class ChatFirestoreDataSource {
     MessageType type = MessageType.text,
   }) async {
     try {
-      final messageRef = await _chatsCollection.doc(chatId).collection('messages').add({
-        'chatId': chatId,
-        'senderId': senderId,
-        'content': content,
-        'type': type.name,
-        'createdAt': FieldValue.serverTimestamp(),
-        'isSeen': false,
-        'seenAt': null,
+      String? newMessageId;
+
+      await _firestore.runTransaction((transaction) async {
+        final chatRef = _chatsCollection.doc(chatId);
+        final chatDoc = await transaction.get(chatRef);
+
+        if (!chatDoc.exists) {
+          throw Exception('Chat not found');
+        }
+
+        final participants =
+            (chatDoc.data()?['participants'] as List?)?.cast<String>() ?? [];
+
+        if (!participants.contains(senderId)) {
+          throw Exception('User not in chat');
+        }
+
+        final otherUserId = participants.firstWhere(
+          (uid) => uid != senderId,
+          orElse: () => '',
+        );
+
+        final messageRef = chatRef.collection('messages').doc();
+        newMessageId = messageRef.id;
+
+        transaction.set(messageRef, {
+          'chatId': chatId,
+          'senderId': senderId,
+          'content': content,
+          'type': type.name,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isSeen': false,
+          'seenAt': null,
+        });
+
+        transaction.update(chatRef, {
+          'lastMessage': content,
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          if (otherUserId.isNotEmpty)
+            'unreadCount_$otherUserId': FieldValue.increment(1),
+        });
       });
 
-      // Get other participant
-      final chatDoc = await _chatsCollection.doc(chatId).get();
-      final participants = (chatDoc.data()?['participants'] as List?)?.cast<String>() ?? [];
-      final otherUserId = participants.firstWhere(
-        (uid) => uid != senderId,
-        orElse: () => participants.first,
-      );
-
-      // Update chat
-      await _chatsCollection.doc(chatId).update({
-        'lastMessage': content,
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'unreadCount_$otherUserId': FieldValue.increment(1),
-      });
-
-      return (messageId: messageRef.id, failure: null);
+      return (messageId: newMessageId, failure: null);
     } catch (e) {
       return (
         messageId: null,
