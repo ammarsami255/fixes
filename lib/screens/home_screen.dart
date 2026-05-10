@@ -416,24 +416,24 @@ class AuthBottomSheet extends StatelessWidget {
   void _showLoginScreen(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const _OldLoginScreen()),
     );
   }
 
   void _showRegisterScreen(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+      MaterialPageRoute(builder: (_) => const _OldRegisterScreen()),
     );
   }
 }
 
 // Login Screen
 class _OldLoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const _OldLoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<_OldLoginScreen> createState() => _OldLoginScreenState();
 }
 
 class _OldLoginScreenState extends State<_OldLoginScreen> {
@@ -607,7 +607,7 @@ class _OldLoginScreenState extends State<_OldLoginScreen> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      MaterialPageRoute(builder: (_) => const _OldRegisterScreen()),
                     );
                   },
                   child: const Text(
@@ -679,10 +679,10 @@ class _OldLoginScreenState extends State<_OldLoginScreen> {
 
 // Register Screen
 class _OldRegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  const _OldRegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<_OldRegisterScreen> createState() => _OldRegisterScreenState();
 }
 
 class _OldRegisterScreenState extends State<_OldRegisterScreen> {
@@ -871,7 +871,7 @@ class _OldRegisterScreenState extends State<_OldRegisterScreen> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      MaterialPageRoute(builder: (_) => const _OldLoginScreen()),
                     );
                   },
                   child: const Text(

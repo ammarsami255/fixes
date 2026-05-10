@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:get_it/get_it.dart' show getIt;
+import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/features/chat/domain/entities/chat_entity.dart';
 
