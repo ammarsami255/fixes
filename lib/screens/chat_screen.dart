@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/chat_service.dart';
-import 'package:el_moza3/services/auth_service.dart';
+import 'package:get_it/get_it.dart';
+import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
+import 'package:el_moza3/features/chat/domain/entities/chat_entity.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -13,12 +15,12 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  late Stream<List<Map<String, dynamic>>> _chatsStream;
+  late Stream<List<Chat>> _chatsStream;
 
   @override
   void initState() {
     super.initState();
-    _chatsStream = ChatService.getMyChats();
+    _chatsStream = getIt<ChatRepository>().getMyChats(limit: 20);
   }
 
   @override
@@ -59,7 +61,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
+              child: StreamBuilder<List<Chat>>(
                 stream: _chatsStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -170,44 +172,28 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 
 class _ChatTile extends StatelessWidget {
-  final Map<String, dynamic> chat;
+  final Chat chat;
 
   const _ChatTile({required this.chat});
 
   @override
   Widget build(BuildContext context) {
-    final participants = (chat['participants'] as List<dynamic>).cast<String>();
-    final currentUserId = AuthService.currentUser?.uid ?? '';
-    final otherUserId = participants.firstWhere(
-      (id) => id != currentUserId,
-      orElse: () => '',
-    );
+    // Get current user from FirebaseAuth
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final otherUserId = chat.getOtherParticipantId(currentUserId);
 
-    final lastMessage = chat['lastMessage'] ?? '';
-    final lastTime = chat['lastMessageTime'] as Timestamp?;
+    final lastMessage = chat.lastMessage ?? '';
+    final lastTime = chat.lastMessageTime;
 
-    final participantNames =
-        (chat['participantNames'] as Map<dynamic, dynamic>?)?.map(
-          (key, value) => MapEntry(key.toString(), value.toString()),
-        ) ??
-        {};
-    final userName = participantNames[otherUserId] ?? 'User';
-
-    String? profileImage;
-    final otherUserData = chat['participantProfiles'] as Map<dynamic, dynamic>?;
-    if (otherUserData != null) {
-      profileImage = otherUserData[otherUserId] as String?;
-    }
-
-    final unreadCount = chat['unreadCount'] as int? ?? 0;
+    final unreadCount = chat.unreadCount[currentUserId] ?? 0;
 
     return _ChatTileUI(
-      userName: userName,
+      userName: 'User', // TODO: Get from UserRepository
       lastMessage: lastMessage,
-      lastTime: lastTime,
-      chatId: chat['id'],
+      lastTime: lastTime != null ? Timestamp.fromDate(lastTime) : null,
+      chatId: chat.id,
       otherUserId: otherUserId,
-      profileImage: profileImage,
+      profileImage: null, // TODO: Get from UserRepository
       unreadCount: unreadCount,
     );
   }
