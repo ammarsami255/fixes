@@ -436,11 +436,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _messageCtrl.clear();
 
     try {
-      await getIt<ChatRepository>().sendMessage(chatId: widget.chatId, content: content);
-    } finally {
-      if (mounted) {
-        setState(() => _sending = false);
+      final result = await getIt<ChatRepository>().sendMessage(
+        chatId: widget.chatId,
+        content: content,
+      );
+      if (result.failure != null && mounted) {
+        _messageCtrl.text = content;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.failure!.message)),
+        );
       }
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
   }
 
