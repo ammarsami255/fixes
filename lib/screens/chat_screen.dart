@@ -317,10 +317,10 @@ class _ChatTileUI extends StatelessWidget {
     );
   }
 
-  String _formatTime(Timestamp? timestamp) {
+  String _formatTime(DateTime? timestamp) {
     if (timestamp == null) return '';
     final now = DateTime.now();
-    final time = timestamp.toDate();
+    final time = timestamp;
     final diff = now.difference(time);
 
     if (diff.inMinutes < 1) return 'Now';
@@ -607,7 +607,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 class _MessageBubble extends StatelessWidget {
   final String content;
   final bool isMe;
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
   final bool isSeen;
 
   const _MessageBubble({
@@ -666,9 +666,9 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  String _formatTime(Timestamp? timestamp) {
+  String _formatTime(DateTime? timestamp) {
     if (timestamp == null) return '';
-    final time = timestamp.toDate();
+    final time = timestamp;
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
