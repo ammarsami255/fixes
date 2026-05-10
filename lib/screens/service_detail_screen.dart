@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:get_it/get_it.dart';
-import 'package:el_moza3/services/database_service.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
+import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 import 'package:el_moza3/utils/whatsapp_helper.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 
@@ -40,7 +40,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     if (user != null) {
       final listingId = widget.item['id'] as String?;
       if (listingId != null) {
-        final isFav = await DatabaseService.isFavorite(user.uid, listingId);
+        final isFav = await getIt<UserRepository>().isFavorite(user.uid, listingId);
         if (mounted) {
           setState(() => _isSaved = isFav);
         }
@@ -62,9 +62,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
     try {
       if (_isSaved) {
-        await DatabaseService.removeFromFavorites(user.uid, listingId);
+        await getIt<UserRepository>().removeFromFavorites(user.uid, listingId);
       } else {
-        await DatabaseService.addToFavorites(user.uid, listingId);
+        await getIt<UserRepository>().addToFavorites(user.uid, listingId);
       }
       if (mounted) {
         setState(() => _isSaved = !_isSaved);
