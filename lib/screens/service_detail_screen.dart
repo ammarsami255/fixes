@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/auth_service.dart';
-import 'package:el_moza3/services/chat_service.dart';
-import 'package:el_moza3/services/database_service.dart';
+import 'package:get_it/get_it.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/utils/whatsapp_helper.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 
@@ -30,11 +30,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   void initState() {
     super.initState();
     _checkIfSaved();
-    _currentUserId = AuthService.currentUser?.uid;
+    _currentUserId = FirebaseAuth.instance.currentUser?.uid;
   }
 
   Future<void> _checkIfSaved() async {
-    final user = AuthService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final listingId = widget.item['id'] as String?;
       if (listingId != null) {
@@ -47,7 +47,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   }
 
   Future<void> _toggleSave() async {
-    final user = AuthService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       await widget.onRequireLogin();
       return;
@@ -99,7 +99,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   }
 
   Future<void> _openInAppChat() async {
-    final user = AuthService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       await widget.onRequireLogin();
       return;
@@ -133,11 +133,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     setState(() => _isLoadingChat = true);
 
     try {
-      final chatId = await ChatService.getOrCreateChat(
-        sellerId,
+      final result = await getIt<ChatRepository>().getOrCreateChat(
+        otherUserId: sellerId,
         listingId: widget.item['id'] as String?,
-        otherUserName: widget.item['userName'] as String?,
       );
+      final chatId = result.chatId;
       if (chatId != null && mounted) {
         Navigator.push(
           context,
