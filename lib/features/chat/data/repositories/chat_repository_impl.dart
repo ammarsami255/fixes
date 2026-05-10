@@ -41,9 +41,19 @@ class ChatRepositoryImpl implements ChatRepository {
     required String content,
     MessageType type = MessageType.text,
   }) {
+    final senderId = _dataSource.currentUserId;
+    if (senderId == null || senderId.isEmpty) {
+      return Future.value((
+        messageId: null,
+        failure: const AuthFailure(
+          message: 'User not authenticated',
+          code: 'not_authenticated',
+        ),
+      ));
+    }
     return _dataSource.sendMessage(
       chatId: chatId,
-      senderId: _dataSource.currentUserId ?? '',
+      senderId: senderId,
       content: content,
       type: type,
     );
