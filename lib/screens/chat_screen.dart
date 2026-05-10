@@ -482,7 +482,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
+            child: StreamBuilder<List<Message>>(
               stream: _messagesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -491,10 +491,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
                 final messages = snapshot.data ?? [];
                 
-                final currentUserId = getIt<AuthRepository>().currentUserId?.uid;
+                final currentUserId = getIt<AuthRepository>().currentUserId;
                 final unreadMessageIds = messages
-                    .where((m) => m['senderId'] != currentUserId && m['isSeen'] == false)
-                    .map((m) => m['id'] as String)
+                    .where((m) => m.senderId != currentUserId && m.isSeen == false)
+                    .map((m) => m.id)
                     .toList();
 
                 if (unreadMessageIds.isNotEmpty) {
