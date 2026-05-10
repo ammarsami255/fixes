@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/auth_service.dart';
-import 'package:el_moza3/services/chat_service.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
+import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
+import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
@@ -17,7 +20,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
-    final userId = AuthService.currentUser?.uid;
+    final userId = getIt<FirebaseAuth>().currentUser?.uid;
 
     return Scaffold(
       backgroundColor: AppColors.background2,
@@ -166,7 +169,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _handleTap(String notificationId, Map<String, dynamic> dataMap) async {
-    final userId = AuthService.currentUser?.uid;
+    final userId = getIt<FirebaseAuth>().currentUser?.uid;
     if (userId == null) return;
 
     final read = dataMap['read'] as bool? ?? false;
@@ -185,7 +188,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (type == 'chat' && actionData != null) {
       final chatId = actionData['chatId'] as String?;
       if (chatId != null && context.mounted) {
-        final participants = await ChatService.getParticipants(chatId);
+        final result = await getIt<ChatRepository>().getChat(chatId);
+        final participants = result.chat?.participantIds ?? [];
         if (!participants.contains(userId)) return;
 
         final otherUserId = participants.firstWhere(

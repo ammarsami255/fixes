@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/auth_service.dart';
-import 'package:el_moza3/services/listing_service.dart';
-import 'package:el_moza3/services/database_service.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
+import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
+import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
+import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
+import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -37,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await AuthService.logout();
+              await getIt<AuthRepository>().signOut();
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text("Logout"),
@@ -77,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (newName.isNotEmpty) {
                 await user.updateDisplayName(newName);
                 await user.reload();
-                await DatabaseService.updateUserProfile(
+                await getIt<UserRepository>().updateUserProfile(
                   uid: user.uid,
                   name: newName,
                 );
@@ -124,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final userId = AuthService.currentUser?.uid;
+              final userId = FirebaseAuth.instance.currentUser?.uid;
               if (userId != null && messageCtrl.text.trim().isNotEmpty) {
                 await FirebaseFirestore.instance.collection('support').add({
                   'userId': userId,
@@ -185,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showSavedListings(BuildContext context) async {
-    final user = AuthService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     showModalBottomSheet(
@@ -197,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showMyListings(BuildContext context) {
-    final user = AuthService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     showModalBottomSheet(
@@ -239,8 +242,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, color: AppColors.border),
           Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: ListingService.getMyListings(),
+            child: StreamBuilder<List<Listing>>(
+              stream: getIt<ListingRepository>().getListings(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -308,8 +311,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () async {
         Navigator.pop(context); // Close sheet
         // Get listing data
-        final listingData = await ListingService.getListing(listingId);
-        if (listingData != null && mounted) {
+        final result = await getIt<ListingRepository>().getListing(listingId);
+        if (result.listing != null && mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -444,7 +447,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirm == true && mounted) {
       try {
-        await ListingService.deleteListing(listingId);
+        await getIt<ListingRepository>().deleteListing(listingId);
         if (mounted) {
           ScaffoldMessenger.of(
             context,
@@ -520,10 +523,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () async {
                       Navigator.pop(context); // Close sheet
                       // Get listing data first
-                      final listingData = await ListingService.getListing(
+                      final result = await getIt<ListingRepository>().getListing(
                         listingId,
                       );
-                      if (listingData != null && mounted) {
+                      if (result.listing != null && mounted) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -638,7 +641,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: AuthService.authStateChanges,
+      stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final user = snapshot.data;
         if (user == null) return _buildGuest(context);
@@ -906,8 +909,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Stats - with loading state to prevent showing 0 during stream
-                    StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: ListingService.getMyListings(),
+                    StreamBuilder<List<Listing>>(
+                      stream: getIt<ListingRepository>().getListings(),
                       builder: (context, snap) {
                         // Show loading - never show 0
                         if (snap.connectionState == ConnectionState.waiting) {
