@@ -45,9 +45,8 @@ service cloud.firestore {
       allow get: if hasAuth() 
         && request.auth.uid in resource.data.participants;
       
-      // Collection query (list): Firestore's arrayContains already filters results
-      // The query itself ensures userId is in participants, so just require auth
-      allow list: if hasAuth();
+      // Collection query (list): Must be participant
+      allow list: if hasAuth() && request.auth.uid in resource.data.participants;
       
       // Create: must have exactly 2 participants and be one of them
       allow create: if hasAuth()
@@ -69,8 +68,9 @@ service cloud.firestore {
       // Read single document: Must be authenticated
       allow get: if hasAuth();
       
-      // Collection list: Firestore's arrayContains on parent chat filters results
-      allow list: if hasAuth();
+      // Collection list: Verify parent chat membership via get()
+      allow list: if hasAuth() && exists(/databases/$(database)/documents/chats/$(chatId)) 
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
       // Create: Must own the message being sent
       allow create: if hasAuth()
