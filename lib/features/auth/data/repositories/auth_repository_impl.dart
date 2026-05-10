@@ -68,7 +68,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Reload to get verification status
       await _dataSource.reload();
-      await _dataSource.reload();
 
       final authUser = AuthUserModel.fromFirebaseUser(user).toEntity();
       return (user: authUser, failure: null);
@@ -157,7 +156,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Send verification email
       await _dataSource.sendVerificationEmail();
-      await _dataSource.reload();
 
       final authUser = AuthUserModel.fromFirebaseUser(user).toEntity();
       return (user: authUser, failure: null);

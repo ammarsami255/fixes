@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
 import '../../domain/entities/auth_user.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import 'auth_state_event.dart';
 
@@ -21,23 +22,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     add(AuthCheckRequested());
   }
 
-  /// Get use cases from DI
-  GetCurrentUserUseCase get _getCurrentUser =>
-      GetCurrentUserUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
+  /// Get repository from DI container
+  AuthRepository get _authRepository => getIt<AuthRepository>();
 
-  SignInWithEmailUseCase get _signInWithEmail =>
-      SignInWithEmailUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
-
-  SignInWithGoogleUseCase get _signInWithGoogle =>
-      SignInWithGoogleUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
-
-  RegisterWithEmailUseCase get _registerWithEmail =>
-      RegisterWithEmailUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
-
-  SignOutUseCase get _signOut => SignOutUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
-
-  SendPasswordResetUseCase get _sendPasswordReset =>
-      SendPasswordResetUseCase(GetIt.I<AuthRepositoryImplGetter>().get());
+  /// Use cases
+  GetCurrentUserUseCase get _getCurrentUser => GetCurrentUserUseCase(_authRepository);
+  SignInWithEmailUseCase get _signInWithEmail => SignInWithEmailUseCase(_authRepository);
+  SignInWithGoogleUseCase get _signInWithGoogle => SignInWithGoogleUseCase(_authRepository);
+  RegisterWithEmailUseCase get _registerWithEmail => RegisterWithEmailUseCase(_authRepository);
+  SignOutUseCase get _signOut => SignOutUseCase(_authRepository);
+  SendPasswordResetUseCase get _sendPasswordReset => SendPasswordResetUseCase(_authRepository);
 
   Future<void> _onCheckRequested(
     AuthCheckRequested event,

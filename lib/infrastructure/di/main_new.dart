@@ -3,14 +3,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/constants/app_theme.dart';
-import '../../features/auth/presentation/bloc/auth_bloc.dart';
-import '../../features/auth/presentation/bloc/auth_state_event.dart';
-import '../../features/auth/presentation/screens/splash_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/register_screen.dart';
-import '../di/injection.dart';
-import '../../firebase_options.dart';
+import 'core/constants/app_theme.dart';
+import 'screens/home_screen.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_state_event.dart';
+import 'features/auth/presentation/screens/splash_screen.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/auth/presentation/screens/register_screen.dart';
+import 'infrastructure/di/injection.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,7 @@ class ElMoza3App extends StatelessWidget {
         routes: {
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
+          '/home': (_) => const HomeScreen(), // Connect to existing home screen
         },
       ),
     );
@@ -68,11 +70,8 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (state is AuthAuthenticated) {
-          // Navigate to home if authenticated
-          // TODO: Replace with home screen
-          return const Scaffold(
-            body: Center(child: Text('Home Screen')),
-          );
+          // Navigate to existing home screen
+          return const HomeScreen();
         }
         
         // Unauthenticated - show login

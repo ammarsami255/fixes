@@ -1,12 +1,16 @@
 import 'package:get_it/get_it.dart';
 
 import '../../features/auth/data/datasources/firebase_auth_datasource.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/chat/data/datasources/chat_firestore_datasource.dart';
+import '../../features/chat/domain/repositories/chat_repository.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
 import '../../features/listings/data/datasources/listing_firestore_datasource.dart';
+import '../../features/listings/domain/repositories/listing_repository.dart';
 import '../../features/listings/data/repositories/listing_repository_impl.dart';
 import '../../features/user_profile/data/datasources/user_firestore_datasource.dart';
+import '../../features/user_profile/domain/repositories/user_repository.dart';
 import '../../features/user_profile/data/repositories/user_repository_impl.dart';
 
 final getIt = GetIt.instance;
@@ -36,21 +40,20 @@ Future<void> initializeDependencies() async {
 
   // ==================== REPOSITORIES ====================
   
-  // Register function for AuthRepository (since AuthBloc needs a function)
-  getIt.registerFactory<Future<AuthRepositoryImpl> Function()>(
-    () => () async => AuthRepositoryImpl(getIt<FirebaseAuthDataSource>()),
+  // Register ABSTRACT interfaces with concrete implementations
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(getIt<FirebaseAuthDataSource>()),
   );
 
-  // Register repository implementations
-  getIt.registerLazySingleton<ChatRepositoryImpl>(
+  getIt.registerLazySingleton<ChatRepository>(
     () => ChatRepositoryImpl(getIt<ChatFirestoreDataSource>()),
   );
   
-  getIt.registerLazySingleton<ListingRepositoryImpl>(
+  getIt.registerLazySingleton<ListingRepository>(
     () => ListingRepositoryImpl(getIt<ListingFirestoreDataSource>()),
   );
   
-  getIt.registerLazySingleton<UserRepositoryImpl>(
+  getIt.registerLazySingleton<UserRepository>(
     () => UserRepositoryImpl(getIt<UserFirestoreDataSource>()),
   );
 }

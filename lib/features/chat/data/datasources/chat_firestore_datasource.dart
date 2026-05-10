@@ -20,7 +20,8 @@ class ChatFirestoreDataSource {
   CollectionReference<Map<String, dynamic>> get _chatsCollection =>
       _firestore.collection('chats');
 
-  String? get _currentUserId => _auth.currentUser?.uid;
+  /// Public getter for current user ID (fixes encapsulation)
+  String? get currentUserId => _auth.currentUser?.uid;
 
   // ==================== CHAT OPERATIONS ====================
 

@@ -38,8 +38,8 @@ class FirebaseAuthDataSource {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
       throw FirebaseAuthException(
-        'popup-closed',
-        'Google sign-in was cancelled',
+        code: 'popup-closed',
+        message: 'Google sign-in was cancelled',
       );
     }
 

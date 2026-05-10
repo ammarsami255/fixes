@@ -43,7 +43,7 @@ class ChatRepositoryImpl implements ChatRepository {
   }) {
     return _dataSource.sendMessage(
       chatId: chatId,
-      senderId: _dataSource._currentUserId ?? '',
+      senderId: _dataSource.currentUserId ?? '',
       content: content,
       type: type,
     );
