@@ -19,7 +19,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _ctrl = TextEditingController();
   String _query = "";
-  List<Map<String, dynamic>> _all = [];
+  List<Listing> _all = [];
 
   @override
   void dispose() {

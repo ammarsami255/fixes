@@ -45,6 +45,21 @@ class Listing extends Equatable {
         updatedAt,
         viewCount,
       ];
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'userId': userId,
+        'title': title,
+        'description': description,
+        'price': price,
+        'imageUrl': imageUrl,
+        'category': category,
+        'location': location,
+        'status': status.name,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+        'viewCount': viewCount,
+      };
 }
 
 enum ListingStatus { active, inactive, sold }

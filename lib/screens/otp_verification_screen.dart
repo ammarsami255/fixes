@@ -23,6 +23,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
   bool _isResending = false;
   bool _isVerifying = false;
   int _resendCountdown = 0;
+  String _error = '';
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;

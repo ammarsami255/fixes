@@ -299,13 +299,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMyListingCard(Map<String, dynamic> listing) {
-    final title = listing['title'] as String? ?? '';
-    final category = listing['category'] as String? ?? '';
-    final price = listing['price'] as String? ?? '';
-    final location = listing['location'] as String? ?? '';
-    final listingId = listing['id'] as String? ?? '';
-    final imageUrl = listing['imageUrl'] as String?;
+  Widget _buildMyListingCard(Listing listing) {
+    final title = listing.title;
+    final category = listing.category;
+    final price = listing.price;
+    final location = listing.location;
+    final listingId = listing.id;
+    final imageUrl = listing.imageUrl;
 
     return GestureDetector(
       onTap: () async {
@@ -317,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => ServiceDetailScreen(
-                item: listingData,
+                item: result.listing!.toMap(),
                 onRequireLogin: widget.onRequireLogin,
               ),
             ),
@@ -927,7 +927,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final count = listings.length;
                         int totalViews = 0;
                         for (final l in listings) {
-                          totalViews += (l['viewCount'] as int?) ?? 0;
+                          totalViews += l.viewCount;
                         }
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

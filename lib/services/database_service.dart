@@ -59,6 +59,8 @@ class _ParticipantCache {
 class DatabaseService {
   DatabaseService._();
 
+  factory DatabaseService() => DatabaseService._();
+
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static CollectionReference<Map<String, dynamic>> get _usersCollection =>
