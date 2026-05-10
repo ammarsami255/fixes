@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
-import 'package:el_moza3/services/auth_service.dart';
-import 'package:el_moza3/services/chat_service.dart';
+import 'package:get_it/get_it.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
+import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/screens/services_screen.dart';
 import 'package:el_moza3/screens/search_screen.dart';
 import 'package:el_moza3/screens/add_service_screen.dart';
@@ -24,15 +26,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _unreadChatsStream = ChatService.getUnreadChatsStream();
+    _unreadChatsStream = getIt<ChatRepository>().getUnreadChatsCountStream();
     _initialize();
   }
 
   @override
   void dispose() {
     // FIXED: Clean up resources to prevent memory leaks
-    ChatService.setOffline();
-    ChatService.dispose();
+    // presence handled elsewhere
+    // presence handled elsewhere
     super.dispose();
   }
 
@@ -44,14 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _requireLogin() async {
-    if (AuthService.currentUser == null) {
+    if (FirebaseAuth.instance.currentUser == null) {
       _showAuthBottomSheet();
       return;
     }
 
-    final isVerified = await AuthService.isCurrentUserVerified();
+    final isVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
     if (!isVerified && mounted) {
-      final email = AuthService.currentUser?.email;
+      final email = FirebaseAuth.instance.currentUser?.email;
       if (email != null && email.isNotEmpty) {
         await Navigator.push(
           context,
@@ -181,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () async {
           if (index == 2 || index == 3) {
             await _requireLogin();
-            final isVerified = await AuthService.isCurrentUserVerified();
+            final isVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
             if (!isVerified) return;
           }
           setState(() => _currentIndex = index);
@@ -266,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           onTap: () async {
             await _requireLogin();
-            final isVerified = await AuthService.isCurrentUserVerified();
+            final isVerified = FirebaseAuth.instance.currentUser?.emailVerified ?? false;
             if (isVerified && mounted) {
               setState(() => _currentIndex = 2);
             }
@@ -387,7 +389,7 @@ class AuthBottomSheet extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () async {
           Navigator.pop(context);
-          final result = await AuthService.signInWithGoogle();
+          final result = await getIt<AuthRepository>().signInWithGoogle();
           if (result.isSuccess && context.mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -458,7 +460,7 @@ class _OldLoginScreenState extends State<_OldLoginScreen> {
     setState(() => _loading = true);
 
     try {
-      final result = await AuthService.login(
+      final result = await getIt<AuthRepository>().login(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
       );
@@ -723,7 +725,7 @@ class _OldRegisterScreenState extends State<_OldRegisterScreen> {
     setState(() => _loading = true);
 
     try {
-      final result = await AuthService.register(
+      final result = await getIt<AuthRepository>().register(
         name: _nameCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text,
