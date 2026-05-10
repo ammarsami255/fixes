@@ -243,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1, color: AppColors.border),
           Expanded(
             child: StreamBuilder<List<Listing>>(
-              stream: getIt<ListingRepository>().getMyListings(user.uid),
+              stream: getIt<ListingRepository>().getMyListings(userId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
