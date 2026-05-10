@@ -11,6 +11,7 @@ import 'package:el_moza3/screens/otp_verification_screen.dart';
 import 'package:el_moza3/services/error_handler.dart';
 import 'package:el_moza3/services/notification_service.dart';
 import 'package:el_moza3/services/chat_service.dart';
+import 'package:el_moza3/services/connectivity_service.dart';
 import 'package:el_moza3/features/auth/presentation/cubit/auth_cubit.dart';
 
 @pragma('vm:entry-point')
@@ -24,6 +25,9 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await NotificationService.initialize();
+  
+  // Initialize connectivity service (lightweight - just starts listening)
+  ConnectivityService.instance.init();
 
   runApp(const ElMoza3App());
   WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -1,78 +1,53 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 
-/// Service to track and manage offline state
+/// Simple connectivity check - lightweight, minimal
+/// Does NOT redirect or block - just shows an optional banner
 class ConnectivityService {
+  // Private constructor
   ConnectivityService._();
-
-  static final ConnectivityService instance = ConnectivityService._();
-
-  final Connectivity _connectivity = Connectivity();
   
-  // Current connectivity state
+  // Singleton access
+  static final ConnectivityService _instance = ConnectivityService._();
+  static ConnectivityService get instance => _instance;
+
+  // Current state (default to true for optimistic UX)
   bool _isOnline = true;
   bool get isOnline => _isOnline;
   
-  // Stream controller for connectivity changes
-  final StreamController<bool> _connectivityController = StreamController<bool>.broadcast();
-  Stream<bool> get connectivityStream => _connectivityController.stream;
-  
-  // Initialize and start listening
-  Future<void> initialize() async {
-    // Check initial state
-    final results = await _connectivity.checkConnectivity();
-    _updateConnectivity(results);
-    
-    // Listen for changes
-    _connectivity.onConnectivityChanged.listen(_updateConnectivity);
+  // Stream for listening
+  final _controller = StreamController<bool>.broadcast();
+  Stream<bool> get stream => _controller.stream;
+
+  // Initialize (call once from main.dart)
+  Future<void> init() async {
+    _check();
+    Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
   }
   
-  void _updateConnectivity(List<ConnectivityResult> results) {
+  void _check() async {
+    final results = await Connectivity().checkConnectivity();
+    _onConnectivityChanged(results);
+  }
+  
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
     final wasOnline = _isOnline;
     _isOnline = results.isNotEmpty && !results.contains(ConnectivityResult.none);
     
     if (wasOnline != _isOnline) {
-      _connectivityController.add(_isOnline);
-      debugPrint('[Connectivity] Online: $_isOnline');
+      _controller.add(_isOnline);
     }
   }
   
-  /// Check if currently online
-  Future<bool> checkConnectivity() async {
-    final results = await _connectivity.checkConnectivity();
-    return results.isNotEmpty && !results.contains(ConnectivityResult.none);
-  }
+  /// Force refresh
+  Future<void> refresh() => _check();
   
-  /// Dispose resources
-  void dispose() {
-    _connectivityController.close();
-  }
+  void dispose() => _controller.close();
 }
 
-/// Mixin for widgets that need connectivity awareness
-mixin ConnectivityAware<T extends StatefulWidget> on State<T> {
-  StreamSubscription<bool>? _connectivitySubscription;
-  bool _wasOffline = false;
-  
-  void initConnectivityListener(VoidCallback onConnectivityChanged) {
-    _connectivitySubscription = ConnectivityService.instance.connectivityStream.listen((isOnline) {
-      if (isOnline && _wasOffline) {
-        _wasOffline = false;
-        onConnectivityChanged();
-      } else if (!isOnline) {
-        _wasOffline = true;
-      }
-    });
-  }
-  
-  void disposeConnectivityListener() {
-    _connectivitySubscription?.cancel();
-    _connectivitySubscription = null;
-  }
-}
-
-/// Widget that shows offline banner when disconnected
+/// Banner widget showing offline status
+/// Use this INSIDE your pages - NOT as a wrapper that redirects
 class OfflineBanner extends StatelessWidget {
   final Widget child;
   
@@ -81,26 +56,26 @@ class OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<bool>(
-      stream: ConnectivityService.instance.connectivityStream,
-      initialData: ConnectivityService.instance.isOnline,
+      stream: ConnectivityService.instance.stream,
+      initialData: true,
       builder: (context, snapshot) {
-        final isOnline = snapshot.data ?? true;
+        final online = snapshot.data ?? true;
         
         return Column(
           children: [
-            if (!isOnline)
+            if (!online)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding: const EdgeInsets.all(8),
                 color: Colors.orange.shade700,
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.wifi_off, color: Colors.white, size: 18),
+                    Icon(Icons.wifi_off, color: Colors.white, size: 16),
                     SizedBox(width: 8),
                     Text(
-                      'You are offline',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                      'Offline - Data may be limited',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
                 ),
@@ -108,7 +83,7 @@ class OfflineBanner extends StatelessWidget {
             Expanded(child: child),
           ],
         );
-      },
+      }
     );
   }
 }
