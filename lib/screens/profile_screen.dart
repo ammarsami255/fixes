@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:el_moza3/Constants.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/services/auth_service.dart';
 import 'package:el_moza3/services/listing_service.dart';
 import 'package:el_moza3/services/database_service.dart';

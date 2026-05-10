@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:el_moza3/Constants.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/services/listing_service.dart';
 import 'package:el_moza3/widget/service_card.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';

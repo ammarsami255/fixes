@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:el_moza3/Constants.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/services/listing_service.dart';
 
 class AddServiceScreen extends StatefulWidget {

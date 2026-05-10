@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:el_moza3/Constants.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/screens/home_screen.dart';
 
 /// Splash screen that shows for 2 seconds and navigates to appropriate screen
