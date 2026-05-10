@@ -33,7 +33,33 @@ class ChatService {
   // Retry configuration
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(milliseconds: 500);
-
+  
+  // Simple cache for user names to reduce reads (cleared on app restart)
+  static final Map<String, String> _userNameCache = {};
+  
+  /// Get cached user name or fetch from Firestore
+  static Future<String> getUserName(String uid) async {
+    // Check cache first
+    if (_userNameCache.containsKey(uid)) {
+      return _userNameCache[uid]!;
+    }
+    
+    // Fetch from Firestore if not cached
+    try {
+      final doc = await _usersCollection.doc(uid).get();
+      final name = doc.data()?['name'] as String? ?? 'User';
+      _userNameCache[uid] = name;
+      return name;
+    } catch (e) {
+      return 'User';
+    }
+  }
+  
+  /// Clear user name cache (call on logout)
+  static void clearUserCache() {
+    _userNameCache.clear();
+  }
+  
   // ==================== CHAT MANAGEMENT ====================
 
   static Future<String?> getOrCreateChat(
@@ -121,17 +147,29 @@ class ChatService {
   }
 
   // ==================== STREAMS WITH PROPER ERROR HANDLING ====================
+  
+  // Default chat list limit to reduce initial load
+  static const int _defaultChatLimit = 50;
 
-  static Stream<List<Map<String, dynamic>>> getMyChats() {
+  static Stream<List<Map<String, dynamic>>> getMyChats({int? limit}) {
     final userId = _currentUserId;
     if (userId == null) {
       return Stream.value([]);
     }
 
-    return _chatsCollection
+    // Apply limit to prevent loading too many chats
+    var query = _chatsCollection
         .where('participants', arrayContains: userId)
-        .orderBy('lastMessageTime', descending: true)
-        .snapshots()
+        .orderBy('lastMessageTime', descending: true);
+    
+    // Apply limit if specified
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
+    } else {
+      query = query.limit(_defaultChatLimit);
+    }
+
+    return query.snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());

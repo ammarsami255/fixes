@@ -1,6 +1,41 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Simple in-memory cache for user data to reduce Firestore reads
+class _UserCache {
+  // Simple TTL cache: userId -> {data, timestamp}
+  static final Map<String, _CacheEntry<Map<String, dynamic>>> _cache = {};
+  static const _cacheDuration = Duration(minutes: 5);
+  
+  static Map<String, dynamic>? get(String uid) {
+    final entry = _cache[uid];
+    if (entry == null) return null;
+    if (DateTime.now().difference(entry.timestamp) > _cacheDuration) {
+      _cache.remove(uid);
+      return null;
+    }
+    return entry.data;
+  }
+  
+  static void set(String uid, Map<String, dynamic> data) {
+    _cache[uid] = _CacheEntry(data, DateTime.now());
+  }
+  
+  static void invalidate(String uid) {
+    _cache.remove(uid);
+  }
+  
+  static void clear() {
+    _cache.clear();
+  }
+}
+
+class _CacheEntry<T> {
+  final T data;
+  final DateTime timestamp;
+  _CacheEntry(this.data, this.timestamp);
+}
+
 class DatabaseService {
   DatabaseService._();
 
@@ -37,8 +72,26 @@ class DatabaseService {
   }
 
   static Future<Map<String, dynamic>?> getUserDocument(String uid) async {
+    // Try cache first
+    final cached = _UserCache.get(uid);
+    if (cached != null) return cached;
+    
+    // Fetch from Firestore if not cached
     final snapshot = await _usersCollection.doc(uid).get();
-    return snapshot.data();
+    final data = snapshot.data();
+    
+    // Cache the result
+    if (data != null) {
+      _UserCache.set(uid, data);
+    }
+    
+    return data;
+  }
+  
+  /// Force refresh user document (bypass cache)
+  static Future<Map<String, dynamic>?> refreshUserDocument(String uid) async {
+    _UserCache.invalidate(uid);
+    return getUserDocument(uid);
   }
 
   static Stream<Map<String, dynamic>?> watchUserDocument(String uid) {
@@ -88,6 +141,9 @@ class DatabaseService {
     updates['updatedAt'] = FieldValue.serverTimestamp();
 
     await _usersCollection.doc(uid).update(updates);
+    
+    // Invalidate cache so next read gets fresh data
+    _UserCache.invalidate(uid);
   }
 
   /// Mark email as verified

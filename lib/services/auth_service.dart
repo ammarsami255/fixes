@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'database_service.dart';
 import 'notification_service.dart';
+import 'chat_service.dart';
 
 /// Result of authentication operations
 class AuthResult {
@@ -294,6 +295,9 @@ class AuthService {
     await NotificationService.deleteToken();
     await _googleSignIn.signOut();
     await _auth.signOut();
+    
+    // Clear caches on logout
+    ChatService.clearUserCache();
   }
 
   /// Send password reset email
