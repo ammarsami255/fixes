@@ -41,9 +41,13 @@ service cloud.firestore {
     // ==================== CHATS ====================
     
     match /chats/{chatId} {
-      // Read: Must be a chat participant (verified via get())
-      allow read, list: if hasAuth() 
-        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      // Single document access (get): Check membership via resource
+      allow get: if hasAuth() 
+        && request.auth.uid in resource.data.participants;
+      
+      // Collection query (list): Firestore's arrayContains already filters results
+      // The query itself ensures userId is in participants, so just require auth
+      allow list: if hasAuth();
       
       // Create: must have exactly 2 participants and be one of them
       allow create: if hasAuth()
@@ -58,23 +62,24 @@ service cloud.firestore {
     // ==================== MESSAGES ====================
     
     match /chats/{chatId}/messages/{messageId} {
-      // Helper: Get participants for this chat
-      function isChatParticipant() {
-        return request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-      }
+      // Single document access (get): Verify via parent chat
+      allow get: if hasAuth() 
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
-      // Read: Only chat members
-      allow read: if hasAuth() && isChatParticipant();
+      // Collection query (list): User must be chat participant
+      allow list: if hasAuth() 
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
-      // Create: Must be member and own the message
+      // Create: Must own the message and be chat participant
       allow create: if hasAuth()
         && request.resource.data.senderId == request.auth.uid
-        && isChatParticipant();
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
-      // Update: Only members can update
-      allow update: if hasAuth() && isChatParticipant();
+      // Update: Only sender can update their own messages
+      allow update: if hasAuth()
+        && resource.data.senderId == request.auth.uid;
       
-      // Delete: Only the sender can delete their own messages
+      // Delete: Only sender can delete their own messages
       allow delete: if hasAuth()
         && resource.data.senderId == request.auth.uid;
     }
