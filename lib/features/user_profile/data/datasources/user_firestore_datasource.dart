@@ -21,7 +21,7 @@ class UserFirestoreDataSource {
   String? get _currentUserId => _auth.currentUser?.uid;
 
   /// Get user profile
-  Future<({UserProfile?, Failure?}) getUserProfile(String uid) async {
+  Future<({UserProfile? user, Failure? failure})> getUserProfile(String uid) async {
     try {
       final doc = await _usersCollection.doc(uid).get();
       if (!doc.exists) {

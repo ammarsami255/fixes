@@ -1,4 +1,4 @@
-import '../entities/chat_entity.dart';
+import '../../domain/entities/chat_entity.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../../../core/errors/failures.dart';
 import '../datasources/chat_firestore_datasource.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:el_moza3/Constants.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 
 class ServiceCard extends StatelessWidget {
   final String title;

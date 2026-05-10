@@ -1,5 +1,5 @@
-import '../entities/user_profile.dart';
-import '../repositories/user_repository.dart';
+import '../../domain/entities/user_profile.dart';
+import '../../domain/repositories/user_repository.dart';
 import '../../../../core/errors/failures.dart';
 import '../datasources/user_firestore_datasource.dart';
 
@@ -10,7 +10,7 @@ class UserRepositoryImpl implements UserRepository {
   UserRepositoryImpl(this._dataSource);
 
   @override
-  Future<({UserProfile?, Failure?}) getUserProfile(String uid) {
+  Future<({UserProfile? user, Failure? failure})> getUserProfile(String uid) {
     return _dataSource.getUserProfile(uid);
   }
 

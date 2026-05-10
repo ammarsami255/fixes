@@ -4,7 +4,7 @@ import '../../../../core/errors/failures.dart';
 /// User repository interface - contract for data layer
 abstract class UserRepository {
   /// Get user profile
-  Future<({UserProfile?, Failure?}) getUserProfile(String uid);
+  Future<({UserProfile? user, Failure? failure})> getUserProfile(String uid);
 
   /// Create user profile
   Future<Failure?> createUserProfile({

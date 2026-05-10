@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/constants/app_theme.dart';
+import 'package:el_moza3/core/constants/app_constants.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});

@@ -74,16 +74,3 @@ extension ListingStatusExtension on ListingStatus {
     }
   }
 }
-
-extension ListingStatusExtension on ListingStatus {
-  String get name {
-    switch (this) {
-      case ListingStatus.active:
-        return 'active';
-      case ListingStatus.inactive:
-        return 'inactive';
-      case ListingStatus.sold:
-        return 'sold';
-    }
-  }
-}

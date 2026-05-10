@@ -22,7 +22,7 @@ class ListingFirestoreDataSource {
   String? get _currentUserId => _auth.currentUser?.uid;
 
   /// Get single listing
-  Future<({Listing?, Failure?}) getListing(String id) async {
+  Future<({Listing? listing, Failure? failure})> getListing(String id) async {
     try {
       final doc = await _listingsCollection.doc(id).get();
       if (!doc.exists) {

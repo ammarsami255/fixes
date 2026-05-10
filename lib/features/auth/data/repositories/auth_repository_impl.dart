@@ -24,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
       });
 
   @override
-  Future<({AuthUser?, Failure?}) getCurrentUser() async {
+  Future<({AuthUser? user, Failure? failure})> getCurrentUser() async {
     try {
       final firebaseUser = _dataSource.currentUser;
       if (firebaseUser == null) {
@@ -45,7 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<({AuthUser user, Failure?}) signInWithEmail({
+  Future<({AuthUser user, Failure? failure})> signInWithEmail({
     required String email,
     required String password,
   }) async {
@@ -91,7 +91,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<({AuthUser user, Failure?}) signInWithGoogle() async {
+  Future<({AuthUser user, Failure? failure})> signInWithGoogle() async {
     try {
       final credential = await _dataSource.signInWithGoogle();
 
@@ -128,7 +128,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<({AuthUser user, Failure?}) registerWithEmail({
+  Future<({AuthUser user, Failure? failure})> registerWithEmail({
     required String name,
     required String email,
     required String password,
@@ -223,7 +223,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<({bool isVerified, Failure?}) isUserVerified() async {
+  Future<({bool isVerified, Failure? failure})> isUserVerified() async {
     try {
       final user = _dataSource.currentUser;
       if (user == null) {

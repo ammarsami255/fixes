@@ -1,5 +1,5 @@
-import '../entities/listing_entity.dart';
-import '../repositories/listing_repository.dart';
+import '../../domain/entities/listing_entity.dart';
+import '../../domain/repositories/listing_repository.dart';
 import '../../../../core/errors/failures.dart';
 import '../datasources/listing_firestore_datasource.dart';
 
@@ -10,7 +10,7 @@ class ListingRepositoryImpl implements ListingRepository {
   ListingRepositoryImpl(this._dataSource);
 
   @override
-  Future<({Listing?, Failure?}) getListing(String id) {
+  Future<({Listing? listing, Failure? failure})> getListing(String id) {
     return _dataSource.getListing(id);
   }
 
