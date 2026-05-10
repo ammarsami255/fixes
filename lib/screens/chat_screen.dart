@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
@@ -193,7 +192,7 @@ class _ChatTile extends StatelessWidget {
     return _ChatTileUI(
       userName: 'User', // TODO: Get from UserRepository
       lastMessage: lastMessage,
-      lastTime: lastTime != null ? Timestamp.fromDate(lastTime) : null,
+      lastTime: lastTime,
       chatId: chat.id,
       otherUserId: otherUserId,
       profileImage: null, // TODO: Get from UserRepository
@@ -205,7 +204,7 @@ class _ChatTile extends StatelessWidget {
 class _ChatTileUI extends StatelessWidget {
   final String userName;
   final String lastMessage;
-  final Timestamp? lastTime;
+  final DateTime? lastTime;
   final String chatId;
   final String otherUserId;
   final String? profileImage;
