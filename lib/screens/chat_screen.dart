@@ -8,6 +8,7 @@ import 'package:el_moza3/features/chat/domain/entities/chat_entity.dart';
 import 'package:el_moza3/features/chat/data/datasources/chat_firestore_datasource.dart';
 import 'package:el_moza3/features/chat/data/models/chat_model.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
+import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -173,29 +174,54 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-class _ChatTile extends StatelessWidget {
+class _ChatTile extends StatefulWidget {
   final Chat chat;
 
   const _ChatTile({required this.chat});
 
   @override
-  Widget build(BuildContext context) {
-    // Get current user from FirebaseAuth
+  State<_ChatTile> createState() => _ChatTileState();
+}
+
+class _ChatTileState extends State<_ChatTile> {
+  String _userName = '';
+  String? _profileImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final otherUserId = chat.getOtherParticipantId(currentUserId);
+    final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
+    final result = await getIt<UserRepository>().getUserProfile(otherUserId);
+    if (mounted && result.user != null) {
+      setState(() {
+        _userName = result.user!.name;
+        _profileImage = result.user!.profileImageUrl;
+      });
+    }
+  }
 
-    final lastMessage = chat.lastMessage ?? '';
-    final lastTime = chat.lastMessageTime;
+  @override
+  Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
 
-    final unreadCount = chat.unreadCount[currentUserId] ?? 0;
+    final lastMessage = widget.chat.lastMessage ?? '';
+    final lastTime = widget.chat.lastMessageTime;
+
+    final unreadCount = widget.chat.unreadCount[currentUserId] ?? 0;
 
     return _ChatTileUI(
-      userName: 'User', // TODO: Get from UserRepository
+      userName: _userName.isEmpty ? '...' : _userName,
       lastMessage: lastMessage,
       lastTime: lastTime,
-      chatId: chat.id,
+      chatId: widget.chat.id,
       otherUserId: otherUserId,
-      profileImage: null, // TODO: Get from UserRepository
+      profileImage: _profileImage,
       unreadCount: unreadCount,
     );
   }
@@ -369,18 +395,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   Future<void> _loadParticipantDetails() async {
     try {
-      final result = await getIt<ChatRepository>().getChat(widget.chatId);
-      final chat = result.chat;
-      if (chat != null) {
-        _otherUserName = chat.lastMessage ?? 'User';
+      final result = await getIt<UserRepository>().getUserProfile(widget.otherUserId);
+      if (result.user != null) {
+        setState(() {
+          _otherUserName = result.user!.name;
+          _otherUserProfileImage = result.user!.profileImageUrl;
+          _isLoading = false;
+        });
+        return;
       }
-    } catch (e) {
-      // Keep defaults
-    }
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+    } catch (e) {}
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
