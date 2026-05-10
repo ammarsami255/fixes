@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:get_it/get_it.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
+import 'package:el_moza3/infrastructure/di/injection.dart';
+import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/screens/home_screen.dart';
-import 'package:el_moza3/services/auth_service.dart';
-import 'package:el_moza3/services/error_handler.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({super.key, required this.email});
@@ -64,30 +65,34 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     });
 
     try {
-      final success = await AuthService.sendVerificationEmail();
+      final failure = await getIt<AuthRepository>().sendVerificationEmail();
 
       if (!mounted) return;
       setState(() => _isResending = false);
 
-      if (success) {
+      if (failure == null) {
         setState(() {
           _resendCountdown = 60;
         });
         _startCountdown();
-        ErrorHandler.showSuccessDialog(
-          context,
-          message: 'A new verification email has been sent to ${widget.email}',
+        // Show success - could use ScaffoldMessenger
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('A new verification email has been sent to ${widget.email}'),
+          ),
         );
       } else {
-        ErrorHandler.showErrorDialog(
-          context,
-          message: 'Failed to send verification email. Please try again.',
-        );
+        if (!mounted) return;
+        setState(() {
+          _error = 'Failed to send verification email. Please try again.';
+        });
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isResending = false);
-      ErrorHandler.handleException(context, error);
+      setState(() {
+        _error = error.toString();
+        _isResending = false;
+      });
     }
   }
 
@@ -98,33 +103,30 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     });
 
     try {
-      final result = await AuthService.checkVerificationStatus();
+      final result = await getIt<AuthRepository>().isUserVerified();
 
       if (!mounted) return;
       setState(() => _isVerifying = false);
 
-      if (result.isSuccess) {
+      if (result.failure == null && result.isVerified) {
         // Navigate to main screen on success
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
           (route) => false,
         );
-      } else if (result.requiresVerification) {
-        ErrorHandler.showInfoDialog(
-          context,
-          message: result.infoMessage ?? 'Email not verified yet.',
-          title: 'Verification Required',
-        );
       } else {
-        ErrorHandler.showErrorDialog(
-          context,
-          message: result.errorMessage ?? 'Check failed',
-        );
+        // Verification not complete yet
+        if (!mounted) return;
+        setState(() {
+          _error = 'Email not verified yet. Please check your inbox and click the verification link.';
+        });
       }
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isVerifying = false);
-      ErrorHandler.handleException(context, error);
+      setState(() {
+        _isVerifying = false;
+        _error = error.toString();
+      });
     }
   }
 
@@ -138,7 +140,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
 
   /// Sign out
   Future<void> _logout() async {
-    await AuthService.logout();
+    await getIt<AuthRepository>().signOut();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const HomeScreen()),
