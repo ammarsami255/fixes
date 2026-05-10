@@ -56,8 +56,8 @@ class ChatFirestoreDataSource {
     String? listingId,
     String? otherUserName,
   }) async {
-    final currentUserId = currentUserId;
-    if (currentUserId == null || otherUserId.isEmpty) {
+    final uid = currentUserId;
+    if (uid == null || otherUserId.isEmpty) {
       return (
         chatId: null,
         failure: const AuthFailure(
@@ -68,14 +68,14 @@ class ChatFirestoreDataSource {
     }
 
     try {
-      final participants = [currentUserId, otherUserId]..sort();
+      final participants = [uid, otherUserId]..sort();
       final chatId = '${participants[0]}_${participants[1]}';
 
       final chatDoc = await _chatsCollection.doc(chatId).get();
       if (chatDoc.exists) {
         final existingParticipants =
             (chatDoc.data()?['participants'] as List?)?.cast<String>() ?? [];
-        if (existingParticipants.contains(currentUserId) &&
+        if (existingParticipants.contains(uid) &&
             existingParticipants.contains(otherUserId)) {
           return (chatId: chatId, failure: null);
         }
@@ -85,7 +85,7 @@ class ChatFirestoreDataSource {
       await _chatsCollection.doc(chatId).set({
         'participants': participants,
         'participantNames': {
-          currentUserId:
+          uid:
               _auth.currentUser?.displayName ?? _auth.currentUser?.email?.split('@').first ?? 'User',
           otherUserId: otherUserName ?? 'User',
         },
@@ -95,7 +95,7 @@ class ChatFirestoreDataSource {
         'createdAt': FieldValue.serverTimestamp(),
         'typing': <String, bool>{},
         'lastSeen': <String, dynamic>{},
-        'unreadCount_$currentUserId': 0,
+        'unreadCount_$uid': 0,
         'unreadCount_$otherUserId': 0,
       });
 
@@ -112,7 +112,7 @@ class ChatFirestoreDataSource {
   }
 
   Stream<List<Chat>> getMyChats({int limit = 20}) {
-    final userId = currentUserId;
+    final userId = uid;
     if (userId == null) {
       return Stream.value([]);
     }
@@ -234,7 +234,7 @@ class ChatFirestoreDataSource {
   }
 
   Future<Failure?> resetUnreadCount(String chatId) async {
-    final userId = currentUserId;
+    final userId = uid;
     if (userId == null) return null;
 
     try {
@@ -252,7 +252,7 @@ class ChatFirestoreDataSource {
   }
 
   Stream<int> getUnreadCountStream() {
-    final userId = currentUserId;
+    final userId = uid;
     if (userId == null) return Stream.value(0);
 
     return _chatsCollection

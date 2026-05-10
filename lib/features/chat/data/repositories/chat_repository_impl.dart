@@ -39,7 +39,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<({String? messageId, Failure? failure})> sendMessage({
     required String chatId,
     required String content,
-    MessageType type,
+    MessageType type = MessageType.text,
   }) {
     return _dataSource.sendMessage(
       chatId: chatId,

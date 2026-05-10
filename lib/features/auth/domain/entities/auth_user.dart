@@ -14,10 +14,13 @@ class AuthUser extends Equatable {
     this.email,
     this.displayName,
     this.photoUrl,
-    this.isEmailVerified,
+    this.isEmailVerified = false,
     this.createdAt,
   });
 
   @override
   List<Object?> get props => [uid, email, displayName, photoUrl, isEmailVerified, createdAt];
+
+  /// Empty user for initial states
+  static const AuthUser empty = AuthUser(uid: '');
 }

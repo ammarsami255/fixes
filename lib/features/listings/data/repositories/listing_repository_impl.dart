@@ -23,7 +23,7 @@ class ListingRepositoryImpl implements ListingRepository {
   }
 
   @override
-  Future<({String? id, Failure?}) createListing({
+  Future<({String? id, Failure? failure})> createListing({
     required String title,
     required String description,
     required double price,

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../domain/entities/user_profile.dart';
 import '../../../../core/errors/failures.dart';
+import '../models/user_profile_model.dart';
 
 /// User Firestore data source
 class UserFirestoreDataSource {
@@ -26,7 +27,7 @@ class UserFirestoreDataSource {
       final doc = await _usersCollection.doc(uid).get();
       if (!doc.exists) {
         return (
-          userProfile: null,
+          user: null,
           failure: const ValidationFailure(
             message: 'User not found',
             code: 'not_found',
@@ -34,11 +35,11 @@ class UserFirestoreDataSource {
         );
       }
 
-      final userProfile = UserProfileModel.fromFirestore(doc).toEntity();
-      return (userProfile: userProfile, failure: null);
+      final up = UserProfileModel.fromFirestore(doc).toEntity();
+      return (user: up, failure: null);
     } catch (e) {
       return (
-        userProfile: null,
+        user: null,
         failure: ServerFailure(
           message: 'Failed to get user: ${e.toString()}',
           code: 'get_user_failed',

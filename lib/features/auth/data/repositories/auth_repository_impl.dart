@@ -58,7 +58,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = credential.user;
       if (user == null) {
         return (
-          user: AuthUser.empty(),
+          user: AuthUser.empty,
           failure: AuthFailure(
             message: 'Login failed. Please try again.',
             code: 'login_failed',
@@ -73,7 +73,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return (user: authUser, failure: null);
     } on FirebaseAuthException catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: _mapFirebaseError(e.code),
           code: e.code,
@@ -81,7 +81,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     } catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: 'Login failed. Please try again.',
           code: 'login_failed',
@@ -98,7 +98,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = credential.user;
       if (user == null) {
         return (
-          user: AuthUser.empty(),
+          user: AuthUser.empty,
           failure: AuthFailure(
             message: 'Failed to sign in with Google.',
             code: 'google_sign_in_failed',
@@ -110,7 +110,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return (user: authUser, failure: null);
     } on FirebaseAuthException catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: _mapFirebaseError(e.code),
           code: e.code,
@@ -118,7 +118,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     } catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: 'Failed to sign in with Google.',
           code: 'google_sign_in_failed',
@@ -142,7 +142,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = credential.user;
       if (user == null) {
         return (
-          user: AuthUser.empty(),
+          user: AuthUser.empty,
           failure: AuthFailure(
             message: 'Failed to create account.',
             code: 'registration_failed',
@@ -161,7 +161,7 @@ class AuthRepositoryImpl implements AuthRepository {
       return (user: authUser, failure: null);
     } on FirebaseAuthException catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: _mapFirebaseError(e.code),
           code: e.code,
@@ -169,7 +169,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     } catch (e) {
       return (
-        user: AuthUser.empty(),
+        user: AuthUser.empty,
         failure: AuthFailure(
           message: 'Failed to create account.',
           code: 'registration_failed',
