@@ -139,16 +139,21 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         otherUserId: sellerId,
         listingId: widget.item['id'] as String?,
       );
-      final chatId = result.chatId;
-      if (chatId != null && mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                ChatDetailScreen(chatId: chatId, otherUserId: sellerId),
-          ),
+      if (result.failure != null) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result.failure!.message)),
         );
+        return;
       }
+      final chatId = result.chatId;
+      if (chatId == null || !mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              ChatDetailScreen(chatId: chatId, otherUserId: sellerId),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
