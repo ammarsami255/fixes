@@ -10,6 +10,11 @@ abstract class Failure {
   String toString() => 'Failure: $message (code: $code)';
 }
 
+/// Authentication failures
+class AuthFailure extends Failure {
+  const AuthFailure({required super.message, super.code});
+}
+
 /// Validation failures
 class ValidationFailure extends Failure {
   const ValidationFailure({required super.message, super.code});
