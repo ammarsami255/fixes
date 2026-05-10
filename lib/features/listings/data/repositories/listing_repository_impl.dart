@@ -16,11 +16,15 @@ class ListingRepositoryImpl implements ListingRepository {
 
   @override
   Stream<List<Listing>> getListings({
+    String? userId,
     String? category,
     int limit = 20,
   }) {
-    return _dataSource.getListings(category: category, limit: limit);
+    return _dataSource.getListings(userId: userId, category: category, limit: limit);
   }
+
+  @override
+  Stream<List<Listing>> getMyListings(String userId) => getListings(userId: userId);
 
   @override
   Future<({String? id, Failure? failure})> createListing({

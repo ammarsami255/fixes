@@ -8,9 +8,14 @@ abstract class ListingRepository {
 
   /// Get all listings with filters and pagination
   Stream<List<Listing>> getListings({
+    String? userId,
     String? category,
     int limit = 20,
   });
+
+  /// Get listings for a specific user
+  Stream<List<Listing>> getMyListings(String userId) =>
+      getListings(userId: userId);
 
   /// Create listing
   Future<({String? id, Failure? failure})> createListing({

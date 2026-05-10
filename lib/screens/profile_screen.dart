@@ -243,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1, color: AppColors.border),
           Expanded(
             child: StreamBuilder<List<Listing>>(
-              stream: getIt<ListingRepository>().getListings(),
+              stream: getIt<ListingRepository>().getMyListings(user.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -910,7 +910,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     // Stats - with loading state to prevent showing 0 during stream
                     StreamBuilder<List<Listing>>(
-                      stream: getIt<ListingRepository>().getListings(),
+                      stream: getIt<ListingRepository>().getMyListings(user.uid),
                       builder: (context, snap) {
                         // Show loading - never show 0
                         if (snap.connectionState == ConnectionState.waiting) {

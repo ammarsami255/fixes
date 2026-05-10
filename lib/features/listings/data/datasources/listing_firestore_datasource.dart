@@ -50,6 +50,7 @@ class ListingFirestoreDataSource {
 
   /// Get all active listings with pagination
   Stream<List<Listing>> getListings({
+    String? userId,
     String? category,
     int limit = 20,
   }) {
@@ -57,6 +58,10 @@ class ListingFirestoreDataSource {
         .where('status', isEqualTo: 'active')
         .orderBy('createdAt', descending: true)
         .limit(limit);
+
+    if (userId != null && userId.isNotEmpty) {
+      query = query.where('userId', isEqualTo: userId);
+    }
 
     if (category != null && category.isNotEmpty && category != 'الكل') {
       query = query.where('category', isEqualTo: category);
