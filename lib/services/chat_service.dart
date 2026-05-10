@@ -172,24 +172,29 @@ class ChatService {
     }
 
     return query.snapshots()
+        .handleError((e) {
+          // Handle stream errors gracefully
+          print('ChatService.getMyChats error: $e');
+          return <Map<String, dynamic>>[]; // Return empty on error
+        })
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data['id'] = doc.id;
-        
-        final unreadField = data['unreadCount_$userId'];
-        final unreadMap = data['unreadCount'] as Map<dynamic, dynamic>?;
+          return snapshot.docs.map((doc) {
+            final data = Map<String, dynamic>.from(doc.data());
+            data['id'] = doc.id;
+            
+            final unreadField = data['unreadCount_$userId'];
+            final unreadMap = data['unreadCount'] as Map<dynamic, dynamic>?;
 
-        if (unreadField != null) {
-          data['unreadCount'] = (unreadField as num).toInt();
-        } else if (unreadMap != null && unreadMap[userId] != null) {
-          data['unreadCount'] = (unreadMap[userId] as num).toInt();
-        } else {
-          data['unreadCount'] = 0;
-        }
-        return data;
-      }).toList();
-    });
+            if (unreadField != null) {
+              data['unreadCount'] = (unreadField as num).toInt();
+            } else if (unreadMap != null && unreadMap[userId] != null) {
+              data['unreadCount'] = unreadMap[userId].toString();
+            } else {
+              data['unreadCount'] = 0;
+            }
+            return data;
+          }).toList();
+        });
   }
 
   static Stream<List<Map<String, dynamic>>> getMessages(
@@ -202,6 +207,11 @@ class ChatService {
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()
+        .handleError((e) {
+          // Handle stream errors gracefully
+          print('ChatService.getMessages error: $e');
+          return <Map<String, dynamic>>[]; // Return empty on error
+        })
         .map(
           (snapshot) => snapshot.docs.map((doc) {
             final data = doc.data();

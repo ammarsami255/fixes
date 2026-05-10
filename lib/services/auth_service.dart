@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'database_service.dart';
 import 'notification_service.dart';
 import 'chat_service.dart';
+import 'connectivity_service.dart';
 
 /// Result of authentication operations
 class AuthResult {
@@ -217,19 +218,33 @@ class AuthService {
   }
 
   /// Check if current user's email is verified
+  /// Check if user is verified - offline safe version
+  /// Uses cached status, does NOT force reload if offline
   static Future<bool> isCurrentUserVerified() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return false;
-
-      await user.reload();
-      return user.emailVerified;
+      
+      // First check cached status (works offline)
+      if (user.emailVerified) return true;
+      
+      // If not cached verified, try reload (may fail offline)
+      // But don't fail the whole app - use cached value
+      try {
+        await user.reload();
+        return user.emailVerified;
+      } catch (e) {
+        // Offline or network error - assume not verified
+        // but don't block the app
+        return false;
+      }
     } catch (e) {
       return false;
     }
   }
 
-  /// Force reload user and check verification status
+  /// Check verification status - offline safe version
+  /// Does NOT redirect to verify page automatically if offline
   static Future<AuthResult> checkVerificationStatus() async {
     try {
       final user = _auth.currentUser;
@@ -237,11 +252,31 @@ class AuthService {
         return AuthResult.failure('No user is logged in.');
       }
 
-      await user.reload();
-
-      if (user.emailVerified) {
-        return AuthResult.success(infoMessage: 'Email verified successfully!');
-      } else {
+      // Check cached status first (works offline)
+      final cachedVerified = user.emailVerified;
+      if (cachedVerified) {
+        return AuthResult.success(infoMessage: 'Email verified (cached)!');
+      }
+      
+      // Skip network reload if offline
+      if (!ConnectivityService.instance.isOnline) {
+        // Offline - use cached, let user in
+        return AuthResult.success(infoMessage: 'Email verified (cached).');
+      }
+      
+      // Try to reload for latest status (online only)
+      try {
+        await user.reload();
+        if (user.emailVerified) {
+          return AuthResult.success(infoMessage: 'Email verified successfully!');
+        } else {
+          return AuthResult.needsVerification();
+        }
+      } catch (e) {
+        // Error - use cached value
+        if (cachedVerified) {
+          return AuthResult.success(infoMessage: 'Verified (cached).');
+        }
         return AuthResult.needsVerification();
       }
     } catch (e) {

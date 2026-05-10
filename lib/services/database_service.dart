@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'connectivity_service.dart';
+
 /// Simple in-memory cache for user data to reduce Firestore reads
 /// Uses 5-minute TTL to keep data fresh while reducing costs
 class _UserCache {
@@ -94,16 +96,26 @@ class DatabaseService {
     final cached = _UserCache.get(uid);
     if (cached != null) return cached;
     
-    // Fetch from Firestore if not cached
-    final snapshot = await _usersCollection.doc(uid).get();
-    final data = snapshot.data();
-    
-    // Cache the result
-    if (data != null) {
-      _UserCache.set(uid, data);
+    // Don't try to fetch if offline - use null (will use cache or show nothing)
+    if (!ConnectivityService.instance.isOnline) {
+      return null;
     }
     
-    return data;
+    try {
+      // Fetch from Firestore if online
+      final snapshot = await _usersCollection.doc(uid).get();
+      final data = snapshot.data();
+      
+      // Cache the result
+      if (data != null) {
+        _UserCache.set(uid, data);
+      }
+      
+      return data;
+    } catch (e) {
+      // Network error - return null, use cached if available
+      return cached;
+    }
   }
   
   /// Force refresh user document (bypass cache)
