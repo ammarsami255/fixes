@@ -112,7 +112,7 @@ class ChatFirestoreDataSource {
   }
 
   Stream<List<Chat>> getMyChats({int limit = 20}) {
-    final userId = uid;
+    final userId = currentUserId;
     if (userId == null) {
       return Stream.value([]);
     }
@@ -234,7 +234,7 @@ class ChatFirestoreDataSource {
   }
 
   Future<Failure?> resetUnreadCount(String chatId) async {
-    final userId = uid;
+    final userId = currentUserId;
     if (userId == null) return null;
 
     try {
@@ -252,7 +252,7 @@ class ChatFirestoreDataSource {
   }
 
   Stream<int> getUnreadCountStream() {
-    final userId = uid;
+    final userId = currentUserId;
     if (userId == null) return Stream.value(0);
 
     return _chatsCollection

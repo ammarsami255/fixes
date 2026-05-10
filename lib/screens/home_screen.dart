@@ -429,14 +429,14 @@ class AuthBottomSheet extends StatelessWidget {
 }
 
 // Login Screen
-class LoginScreen extends StatefulWidget {
+class _OldLoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _OldLoginScreenState extends State<_OldLoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
@@ -678,14 +678,14 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // Register Screen
-class RegisterScreen extends StatefulWidget {
+class _OldRegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _OldRegisterScreenState extends State<_OldRegisterScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
