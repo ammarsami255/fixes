@@ -1,7 +1,19 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:el_moza3/models/chat_model.dart';
+
+/// Custom exception for chat operations
+class ChatException implements Exception {
+  final String code;
+  final String message;
+  
+  const ChatException(this.code, this.message);
+  
+  @override
+  String toString() => 'ChatException($code): $message';
+}
 
 class ChatService {
   ChatService._();
@@ -18,6 +30,10 @@ class ChatService {
 
   static String? get _currentUserId => _auth.currentUser?.uid;
 
+  // Retry configuration
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(milliseconds: 500);
+
   // ==================== CHAT MANAGEMENT ====================
 
   static Future<String?> getOrCreateChat(
@@ -31,73 +47,80 @@ class ChatService {
     final participants = [currentUserId, otherUserId]..sort();
     final chatId = '${participants[0]}_${participants[1]}';
 
-    try {
-      final chatDoc = await _chatsCollection.doc(chatId).get();
-      if (chatDoc.exists) {
-        final existingParticipants =
-            (chatDoc.data()?['participants'] as List<dynamic>?)
-                ?.cast<String>() ??
-            [];
-        if (existingParticipants.contains(currentUserId) &&
-            existingParticipants.contains(otherUserId)) {
-          return chatId;
-        }
-      }
-    } catch (e) {
-      // Ignored
-    }
-
-    try {
-      await _chatsCollection.doc(chatId).set({
-        'participants': participants,
-        'participantNames': {
-          currentUserId:
-              _auth.currentUser?.displayName ??
-              _auth.currentUser?.email?.split('@').first ??
-              'User',
-          otherUserId: otherUserName ?? 'User',
-        },
-        if (listingId != null) 'listingId': listingId,
-        'lastMessage': '',
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'typing': {},
-        'lastSeen': {},
-        'unreadCount_$currentUserId': 0,
-        'unreadCount_$otherUserId': 0,
-      });
-    } catch (e) {
+    // Retry logic
+    for (int attempt = 0; attempt < _maxRetries; attempt++) {
       try {
         final chatDoc = await _chatsCollection.doc(chatId).get();
-        if (chatDoc.exists) return chatId;
+        if (chatDoc.exists) {
+          final existingParticipants =
+              (chatDoc.data()?['participants'] as List<dynamic>?)
+                  ?.cast<String>() ??
+              [];
+          if (existingParticipants.contains(currentUserId) &&
+              existingParticipants.contains(otherUserId)) {
+            return chatId;
+          }
+        }
+        
+        // Create new chat
+        await _chatsCollection.doc(chatId).set({
+          'participants': participants,
+          'participantNames': {
+            currentUserId:
+                _auth.currentUser?.displayName ??
+                _auth.currentUser?.email?.split('@').first ??
+                'User',
+            otherUserId: otherUserName ?? 'User',
+          },
+          if (listingId != null) 'listingId': listingId,
+          'lastMessage': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'typing': {},
+          'lastSeen': {},
+          'unreadCount_$currentUserId': 0,
+          'unreadCount_$otherUserId': 0,
+        });
+        return chatId;
       } catch (e) {
-        return null;
+        _logError('getOrCreateChat', e);
+        if (attempt < _maxRetries - 1) {
+          await Future.delayed(_retryDelay * (attempt + 1));
+        }
       }
     }
-
-    return chatId;
+    return null;
   }
 
   static Future<ChatModel?> getChat(String chatId) async {
-    final doc = await _chatsCollection.doc(chatId).get();
-    if (!doc.exists) return null;
-    return ChatModel.fromFirestore(doc);
+    try {
+      final doc = await _chatsCollection.doc(chatId).get();
+      if (!doc.exists) return null;
+      return ChatModel.fromFirestore(doc);
+    } catch (e) {
+      _logError('getChat', e);
+      return null;
+    }
   }
 
   static Future<void> deleteChat(String chatId) async {
-    final messages = await _chatsCollection
-        .doc(chatId)
-        .collection('messages')
-        .get();
-    final batch = _firestore.batch();
-    for (final msg in messages.docs) {
-      batch.delete(msg.reference);
+    try {
+      final messages = await _chatsCollection
+          .doc(chatId)
+          .collection('messages')
+          .get();
+      final batch = _firestore.batch();
+      for (final msg in messages.docs) {
+        batch.delete(msg.reference);
+      }
+      batch.delete(_chatsCollection.doc(chatId));
+      await batch.commit();
+    } catch (e) {
+      _logError('deleteChat', e);
     }
-    batch.delete(_chatsCollection.doc(chatId));
-    await batch.commit();
   }
 
-  // ==================== STREAMS ====================
+  // ==================== STREAMS WITH PROPER ERROR HANDLING ====================
 
   static Stream<List<Map<String, dynamic>>> getMyChats() {
     final userId = _currentUserId;
@@ -122,17 +145,7 @@ class ChatService {
         } else if (unreadMap != null && unreadMap[userId] != null) {
           data['unreadCount'] = (unreadMap[userId] as num).toInt();
         } else {
-          data['unreadCount'] = 0; // Optimistic default
-          // Fire and forget migration
-          _chatsCollection
-              .doc(doc.id)
-              .collection('messages')
-              .where('senderId', isNotEqualTo: userId)
-              .where('isSeen', isEqualTo: false)
-              .get()
-              .then((unreadMsgs) {
-            doc.reference.update({'unreadCount_$userId': unreadMsgs.docs.length}).catchError((_) {});
-          }).catchError((_) {});
+          data['unreadCount'] = 0;
         }
         return data;
       }).toList();
@@ -154,7 +167,7 @@ class ChatService {
             final data = doc.data();
             data['id'] = doc.id;
             
-            // Support old seenBy array for backward compatibility
+            // Support old seenBy array
             if (data['isSeen'] == null) {
               final seenBy = data['seenBy'] as List<dynamic>? ?? [];
               data['isSeen'] = seenBy.isNotEmpty;
@@ -175,47 +188,58 @@ class ChatService {
     final userId = _currentUserId;
     if (userId == null || content.trim().isEmpty) return null;
 
-    final chatDoc = await _chatsCollection.doc(chatId).get();
-    if (!chatDoc.exists) return null;
+    // Retry logic
+    for (int attempt = 0; attempt < _maxRetries; attempt++) {
+      try {
+        final chatDoc = await _chatsCollection.doc(chatId).get();
+        if (!chatDoc.exists) return null;
 
-    final participants =
-        (chatDoc.data()?['participants'] as List<dynamic>?)?.cast<String>() ??
-        [];
-    if (!participants.contains(userId)) return null;
+        final participants =
+            (chatDoc.data()?['participants'] as List<dynamic>?)?.cast<String>() ??
+            [];
+        if (!participants.contains(userId)) return null;
 
-    final otherUserId = participants.firstWhere((id) => id != userId, orElse: () => '');
-    if (otherUserId.isEmpty) return null;
+        final otherUserId = participants.firstWhere((id) => id != userId, orElse: () => '');
+        if (otherUserId.isEmpty) return null;
 
-    String? messageId;
+        String? messageId;
 
-    await _firestore.runTransaction((transaction) async {
-      final chat = await transaction.get(_chatsCollection.doc(chatId));
-      if (!chat.exists) return;
+        await _firestore.runTransaction((transaction) async {
+          final chat = await transaction.get(_chatsCollection.doc(chatId));
+          if (!chat.exists) return;
 
-      final messageRef = _chatsCollection
-          .doc(chatId)
-          .collection('messages')
-          .doc();
-          
-      transaction.set(messageRef, {
-        'chatId': chatId,
-        'senderId': userId,
-        'content': content.trim(),
-        'type': type.name,
-        'createdAt': FieldValue.serverTimestamp(),
-        'isSeen': false,
-        'seenAt': null,
-      });
-      messageId = messageRef.id;
+          final messageRef = _chatsCollection
+              .doc(chatId)
+              .collection('messages')
+              .doc();
+              
+          transaction.set(messageRef, {
+            'chatId': chatId,
+            'senderId': userId,
+            'content': content.trim(),
+            'type': type.name,
+            'createdAt': FieldValue.serverTimestamp(),
+            'isSeen': false,
+            'seenAt': null,
+          });
+          messageId = messageRef.id;
 
-      transaction.update(_chatsCollection.doc(chatId), {
-        'lastMessage': content.trim(),
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'unreadCount_$otherUserId': FieldValue.increment(1),
-      });
-    });
+          transaction.update(_chatsCollection.doc(chatId), {
+            'lastMessage': content.trim(),
+            'lastMessageTime': FieldValue.serverTimestamp(),
+            'unreadCount_$otherUserId': FieldValue.increment(1),
+          });
+        });
 
-    return messageId;
+        return messageId;
+      } catch (e) {
+        _logError('sendMessage', e);
+        if (attempt < _maxRetries - 1) {
+          await Future.delayed(_retryDelay * (attempt + 1));
+        }
+      }
+    }
+    return null;
   }
 
   static Future<String?> sendImageMessage({
@@ -235,28 +259,38 @@ class ChatService {
     final userId = _currentUserId;
     if (userId == null) return;
 
-    await _chatsCollection.doc(chatId).update({
-      'unreadCount_$userId': 0,
-      'lastSeen.$userId': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _chatsCollection.doc(chatId).update({
+        'unreadCount_$userId': 0,
+        'lastSeen.$userId': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      _logError('resetUnreadCount', e);
+    }
   }
 
   static Future<void> markMessagesAsSeen(String chatId, List<String> messageIds) async {
     if (messageIds.isEmpty) return;
     
-    final batch = _firestore.batch();
-    
-    for (final msgId in messageIds) {
-      batch.update(_chatsCollection.doc(chatId).collection('messages').doc(msgId), {
-        'isSeen': true,
-        'seenAt': FieldValue.serverTimestamp(),
-      });
-    }
+    try {
+      final batch = _firestore.batch();
+      
+      for (final msgId in messageIds) {
+        batch.update(_chatsCollection.doc(chatId).collection('messages').doc(msgId), {
+          'isSeen': true,
+          'seenAt': FieldValue.serverTimestamp(),
+        });
+      }
 
-    await batch.commit();
+      await batch.commit();
+    } catch (e) {
+      _logError('markMessagesAsSeen', e);
+    }
   }
 
-  // ==================== PRESENCE (Realtime DB) ====================
+  // ==================== PRESENCE ====================
+
+  static StreamSubscription? _presenceSubscription;
 
   static Future<void> setOnline() async {
     initializePresence();
@@ -266,10 +300,13 @@ class ChatService {
     final userId = _currentUserId;
     if (userId == null) return;
 
+    // Clean up previous subscription
+    _presenceSubscription?.cancel();
+
     final connectedRef = _database.ref('.info/connected');
     final userStatusRef = _database.ref('status/$userId');
 
-    connectedRef.onValue.listen((event) {
+    _presenceSubscription = connectedRef.onValue.listen((event) {
       if (event.snapshot.value == true) {
         userStatusRef.onDisconnect().set({
           'online': false,
@@ -290,18 +327,25 @@ class ChatService {
   }
 
   static Future<void> setOffline() async {
+    _presenceSubscription?.cancel();
+    _presenceSubscription = null;
+    
     final userId = _currentUserId;
     if (userId == null) return;
 
-    await _database.ref('status/$userId').set({
-      'online': false,
-      'lastSeen': ServerValue.timestamp,
-    });
-    
-    await _usersCollection.doc(userId).update({
-      'online': false,
-      'lastSeen': FieldValue.serverTimestamp(),
-    }).catchError((_) {});
+    try {
+      await _database.ref('status/$userId').set({
+        'online': false,
+        'lastSeen': ServerValue.timestamp,
+      });
+      
+      await _usersCollection.doc(userId).update({
+        'online': false,
+        'lastSeen': FieldValue.serverTimestamp(),
+      }).catchError((_) {});
+    } catch (e) {
+      _logError('setOffline', e);
+    }
   }
 
   static Stream<Map<String, dynamic>> getUserPresenceStream(String userId) {
@@ -317,20 +361,16 @@ class ChatService {
     });
   }
 
-  static Future<Map<String, dynamic>?> getChatWithParticipantDetails(
-    String chatId,
-  ) async {
-    final doc = await _chatsCollection.doc(chatId).get();
-    if (!doc.exists) return null;
-    return doc.data();
-  }
-
   // ==================== TYPING INDICATOR ====================
 
   static Future<void> setTyping(String chatId, bool isTyping) async {
     final userId = _currentUserId;
     if (userId == null) return;
-    await _chatsCollection.doc(chatId).update({'typing.$userId': isTyping});
+    try {
+      await _chatsCollection.doc(chatId).update({'typing.$userId': isTyping});
+    } catch (e) {
+      _logError('setTyping', e);
+    }
   }
 
   static Stream<Map<String, bool>> getTypingStatus(String chatId) {
@@ -345,7 +385,7 @@ class ChatService {
     });
   }
 
-  // ==================== CHAT BADGE ====================
+  // ==================== CHAT BADGE (FIXED: No more N+1 queries) ====================
 
   static Stream<int> getUnreadCountStream() {
     final userId = _currentUserId;
@@ -365,16 +405,6 @@ class ChatService {
               total += (unreadField as num).toInt();
             } else if (unreadMap != null && unreadMap[userId] != null) {
               total += (unreadMap[userId] as num).toInt();
-            } else {
-              _chatsCollection
-                  .doc(doc.id)
-                  .collection('messages')
-                  .where('senderId', isNotEqualTo: userId)
-                  .where('isSeen', isEqualTo: false)
-                  .get()
-                  .then((unreadMsgs) {
-                doc.reference.update({'unreadCount_$userId': unreadMsgs.docs.length}).catchError((_) {});
-              }).catchError((_) {});
             }
           }
           return total;
@@ -400,16 +430,6 @@ class ChatService {
               unread = (unreadField as num).toInt();
             } else if (unreadMap != null && unreadMap[userId] != null) {
               unread = (unreadMap[userId] as num).toInt();
-            } else {
-              _chatsCollection
-                  .doc(doc.id)
-                  .collection('messages')
-                  .where('senderId', isNotEqualTo: userId)
-                  .where('isSeen', isEqualTo: false)
-                  .get()
-                  .then((unreadMsgs) {
-                doc.reference.update({'unreadCount_$userId': unreadMsgs.docs.length}).catchError((_) {});
-              }).catchError((_) {});
             }
             if (unread > 0) count++;
           }
@@ -418,7 +438,25 @@ class ChatService {
   }
 
   static Future<List<String>> getParticipants(String chatId) async {
-    final doc = await _chatsCollection.doc(chatId).get();
-    return (doc.data()?['participants'] as List<dynamic>?)?.cast<String>() ?? [];
+    try {
+      final doc = await _chatsCollection.doc(chatId).get();
+      return (doc.data()?['participants'] as List<dynamic>?)?.cast<String>() ?? [];
+    } catch (e) {
+      _logError('getParticipants', e);
+      return [];
+    }
+  }
+  
+  /// Clean up resources - call this when done with the service
+  static void dispose() {
+    _presenceSubscription?.cancel();
+    _presenceSubscription = null;
+  }
+  
+  static void _logError(String operation, dynamic error) {
+    assert(() {
+      print('ChatService.$operation error: $error');
+      return true;
+    }());
   }
 }

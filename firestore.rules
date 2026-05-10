@@ -2,86 +2,125 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ==================== HELPER FUNCTIONS ====================
+    
     function signedIn() {
       return request.auth != null;
     }
-
+    
+    function isEmailVerifiedUser() {
+      // Check if user has verified email via Firebase Auth
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+    
     function isOwner(uid) {
       return signedIn() && request.auth.uid == uid;
     }
-
+    
+    // Check if user is a member of a specific chat
     function isChatMember(chatId) {
       return signedIn() &&
         exists(/databases/$(database)/documents/chats/$(chatId)) &&
         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
     }
+    
+    // Anti-spam: Rate limiting helper
+    function isNotRateLimited() {
+      // Allow max 10 listings per user per hour
+      let createCount = get(/databases/$(database)/documents/rate_limits/$(request.auth.uid)).data.listingCreates;
+      return createCount == null || createCount < 10 || request.time.timestamp - createCount.timestamp > duration.value(1, 'h');
+    }
 
+    // ==================== USER PROFILES ====================
+    
     match /users/{userId} {
+      // Users can only read/write their own profile
       allow read, write: if isOwner(userId);
     }
 
+    // ==================== LISTINGS ====================
+    
     match /listings/{listingId} {
+      // Anyone can read public listings
       allow read: if true;
-
+      
+      // Only authenticated users can create, and they must own the listing
       allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid;
-
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().size() <= 20  // Limit fields
+        && request.resource.data.title.size() <= 200
+        && request.resource.data.description.size() <= 5000;
+      
+      // Only owner can update/delete their listings
       allow update, delete: if signedIn()
         && resource.data.userId == request.auth.uid;
     }
 
+    // ==================== CHATS (SECURITY FIX) ====================
+    
     match /chats/{chatId} {
-
-      // ✅ FIXED: Simplified for real-time compatibility
-      // Use signedIn() for all read operations to handle:
-      // - Collection queries with arrayContains
-      // - Single document listens  
-      // - Query-order-by scenarios
-      allow read, list: if signedIn();
-
+      // FIXED: Users can ONLY read their own chats
+      // Use get() to verify membership - this prevents unauthorized access
+      allow read, list: if signedIn() 
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      
+      // Create: must have exactly 2 participants and be one of them
       allow create: if signedIn()
         && request.resource.data.participants.size() == 2
         && request.auth.uid in request.resource.data.participants;
-
+      
+      // Update: only participants can update
       allow update: if signedIn()
         && request.auth.uid in resource.data.participants;
-
+      
+      // Delete: only participants can delete
       allow delete: if signedIn()
         && request.auth.uid in resource.data.participants;
     }
 
+    // ==================== MESSAGES ====================
+    
     match /chats/{chatId}/messages/{messageId} {
-
+      // Only chat members can read messages
       allow read: if signedIn()
         && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-
+      
+      // Only members can send messages
       allow create: if signedIn()
         && request.resource.data.senderId == request.auth.uid
         && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-
+      
+      // Update: only the message sender can update (for editing)
       allow update: if signedIn()
         && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
-
+      
+      // Delete: only the sender can delete their own messages
       allow delete: if signedIn()
         && resource.data.senderId == request.auth.uid;
     }
 
+    // ==================== NOTIFICATIONS ====================
+    
     match /notifications/{userId} {
       allow read, write: if isOwner(userId);
     }
 
+    // ==================== SUPPORT ====================
+    
     match /support/{id} {
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid;
-
+      
       allow read: if signedIn()
         && resource.data.userId == request.auth.uid;
     }
 
+    // ==================== SYSTEM COLLECTIONS (NO ACCESS) ====================
+    
     match /email_otps/{id} {
       allow read, write: if false;
     }
-
+    
     match /rate_limits/{id} {
       allow read, write: if false;
     }

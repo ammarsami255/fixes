@@ -28,6 +28,14 @@ class _HomeScreenState extends State<HomeScreen> {
     _initialize();
   }
 
+  @override
+  void dispose() {
+    // FIXED: Clean up resources to prevent memory leaks
+    ChatService.setOffline();
+    ChatService.dispose();
+    super.dispose();
+  }
+
   Future<void> _initialize() async {
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {

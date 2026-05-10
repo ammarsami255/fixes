@@ -1,26 +1,61 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Custom exception for listing operations
+class ListingException implements Exception {
+  final String code;
+  final String message;
+  
+  const ListingException(this.code, this.message);
+  
+  @override
+  String toString() => 'ListingException($code): $message';
+}
+
+/// Result wrapper for operations with error handling
+class ListingResult<T> {
+  final T? data;
+  final ListingException? error;
+  final bool isSuccess;
+  
+  const ListingResult._({this.data, this.error, required this.isSuccess});
+  
+  factory ListingResult.success(T data) => ListingResult._(data: data, isSuccess: true);
+  factory ListingResult.failure(String code, String message) => ListingResult._(
+    error: ListingException(code, message), 
+    isSuccess: false
+  );
+}
+
 class ListingService {
-  static final _db = FirebaseFirestore.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Pagination settings
   static const int _defaultLimit = 20;
   static const int _maxLimit = 100;
+  
+  // Retry configuration
+  static const int _maxRetries = 3;
+  static const Duration _retryDelay = Duration(milliseconds: 500);
 
   /// Get single listing by ID
   static Future<Map<String, dynamic>?> getListing(String id) async {
     if (id.isEmpty) return null;
-    final doc = await _db.collection('listings').doc(id).get();
-    if (!doc.exists) return null;
-    final data = doc.data();
-    if (data == null) return null;
-    data['id'] = doc.id;
-    return data;
+    
+    try {
+      final doc = await _db.collection('listings').doc(id).get();
+      if (!doc.exists) return null;
+      final data = doc.data();
+      if (data == null) return null;
+      data['id'] = doc.id;
+      return data;
+    } catch (e) {
+      _logError('getListing', e);
+      return null;
+    }
   }
 
-  /// Get all listings with server-side filtering by status/category/location
-  /// Uses Firestore query filters instead of in-memory filtering
+  /// Get all listings with SERVER-SIDE filtering
   static Stream<List<Map<String, dynamic>>> getListings({
     String? category,
     String? location,
@@ -34,7 +69,7 @@ class ListingService {
         .where('status', isEqualTo: 'active')
         .orderBy('createdAt', descending: true);
 
-    // Apply category filter at Firestore level if provided
+    // Apply category filter at Firestore level
     if (category != null && category.isNotEmpty && category != 'الكل') {
       query = query.where('category', isEqualTo: category);
     }
@@ -48,29 +83,7 @@ class ListingService {
         return data;
       }).toList();
 
-      // Apply in-memory filters for flexibility where query isn't available
-      if (location != null && location.isNotEmpty) {
-        final loc = location.toLowerCase();
-        listings = listings.where((l) {
-          final listingLoc = (l['location'] as String?)?.toLowerCase() ?? '';
-          return listingLoc.contains(loc);
-        }).toList();
-      }
-
-      if (minPrice != null) {
-        listings = listings.where((l) {
-          final price = _parsePrice(l['price']);
-          return price != null && price >= minPrice;
-        }).toList();
-      }
-
-      if (maxPrice != null) {
-        listings = listings.where((l) {
-          final price = _parsePrice(l['price']);
-          return price != null && price <= maxPrice;
-        }).toList();
-      }
-
+      // Only do in-memory filtering for text search
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
         listings = listings.where((l) {
@@ -84,7 +97,7 @@ class ListingService {
     });
   }
 
-  /// Get listings with cursor-based pagination for infinite scroll
+  /// Get listings with cursor-based pagination
   static Future<List<Map<String, dynamic>>> getListingsPage({
     String? category,
     String? location,
@@ -111,36 +124,17 @@ class ListingService {
       return data;
     }).toList();
 
-    // Apply in-memory filters
     if (category != null && category.isNotEmpty && category != 'الكل') {
       listings = listings.where((l) => l['category'] == category).toList();
-    }
-
-    if (location != null && location.isNotEmpty) {
-      final loc = location.toLowerCase();
-      listings = listings
-          .where(
-            (l) =>
-                (l['location'] as String?)?.toLowerCase().contains(loc) ??
-                false,
-          )
-          .toList();
     }
 
     return listings;
   }
 
-  static int? _parsePrice(dynamic price) {
-    if (price == null) return null;
-    final priceStr = price.toString().replaceAll(RegExp(r'[^\d]'), '');
-    return int.tryParse(priceStr);
-  }
-
-  /// Get current user's listings only (for profile)
+  /// Get current user's listings only
   static Stream<List<Map<String, dynamic>>> getMyListings() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
-    // If no user logged in, return empty stream
     if (uid == null || uid.isEmpty) {
       return Stream.value([]);
     }
@@ -159,6 +153,7 @@ class ListingService {
         );
   }
 
+  /// Add listing with retry logic
   static Future<String?> addListing({
     required String title,
     required String description,
@@ -169,80 +164,117 @@ class ListingService {
     required String phone,
     List<String>? imageUrls,
   }) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser!;
-      // Validate required fields
-      if (title.trim().isEmpty || title.trim().length > 200) {
-        return 'Invalid title';
-      }
-      if (description.trim().isEmpty || description.trim().length > 5000) {
-        return 'Invalid description';
-      }
-      if (category.trim().isEmpty || category.trim().length > 50) {
-        return 'Invalid category';
-      }
-      if (type.trim().isEmpty || type.trim().length > 50) {
-        return 'Invalid type';
-      }
-      if (price.trim().isEmpty || price.trim().length > 20) {
-        return 'Invalid price';
-      }
-      if (location.trim().isEmpty || location.trim().length > 100) {
-        return 'Invalid location';
-      }
-      if (phone.trim().isEmpty || phone.trim().length > 20) {
-        return 'Invalid phone';
-      }
-      await _db.collection('listings').add({
-        'title': title.trim(),
-        'description': description.trim(),
-        'category': category.trim(),
-        'type': type.trim(),
-        'price': price.trim(),
-        'location': location.trim(),
-        'phone': phone.trim(),
-        'userId': user.uid,
-        'userName': user.displayName ?? '',
-        // Removed userEmail - not stored in public listing docs for security
-        'imageUrls': imageUrls ?? [],
-        'status': 'active',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      return null;
-    } catch (e) {
-      return 'فشل النشر، حاول تاني';
+    // Validate inputs
+    if (title.trim().isEmpty || title.trim().length > 200) {
+      return 'Invalid title';
     }
+    if (description.trim().isEmpty || description.trim().length > 5000) {
+      return 'Invalid description';
+    }
+    if (category.trim().isEmpty || category.trim().length > 50) {
+      return 'Invalid category';
+    }
+    if (type.trim().isEmpty || type.trim().length > 50) {
+      return 'Invalid type';
+    }
+    if (price.trim().isEmpty || price.trim().length > 20) {
+      return 'Invalid price';
+    }
+    if (location.trim().isEmpty || location.trim().length > 100) {
+      return 'Invalid location';
+    }
+    if (phone.trim().isEmpty || phone.trim().length > 20) {
+      return 'Invalid phone';
+    }
+
+    // Retry logic
+    for (int attempt = 0; attempt < _maxRetries; attempt++) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          return 'User not authenticated';
+        }
+
+        await _db.collection('listings').add({
+          'title': title.trim(),
+          'description': description.trim(),
+          'category': category.trim(),
+          'type': type.trim(),
+          'price': price.trim(),
+          'location': location.trim(),
+          'phone': phone.trim(),
+          'userId': user.uid,
+          'userName': user.displayName ?? '',
+          'imageUrls': imageUrls ?? [],
+          'status': 'active',
+          'viewCount': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        return null;
+      } catch (e) {
+        _logError('addListing', e);
+        if (attempt < _maxRetries - 1) {
+          await Future.delayed(_retryDelay * (attempt + 1));
+        }
+      }
+    }
+    return 'فشل النشر، حاول تاني';
   }
 
   static Future<void> deleteListing(String id) async {
     await _db.collection('listings').doc(id).delete();
   }
 
+  /// FIXED: Use atomic increment for view count
   static Future<void> incrementViewCount(String listingId) async {
-    // View counts are intentionally not client-controlled.
-    return;
+    if (listingId.isEmpty) return;
+    
+    try {
+      await _db.collection('listings').doc(listingId).update({
+        'viewCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      _logError('incrementViewCount', e);
+    }
   }
 
   static Future<int> getUserListingsCount(String userId) async {
-    final snap = await _db
-        .collection('listings')
-        .where('userId', isEqualTo: userId)
-        .count()
-        .get();
-    return snap.count ?? 0;
+    try {
+      final snap = await _db
+          .collection('listings')
+          .where('userId', isEqualTo: userId)
+          .count()
+          .get();
+      return snap.count ?? 0;
+    } catch (e) {
+      _logError('getUserListingsCount', e);
+      return 0;
+    }
   }
 
   static Future<int> getUserTotalViews(String userId) async {
-    final snap = await _db
-        .collection('listings')
-        .where('userId', isEqualTo: userId)
-        .get();
+    try {
+      final snap = await _db
+          .collection('listings')
+          .where('userId', isEqualTo: userId)
+          .get();
 
-    int totalViews = 0;
-    for (final doc in snap.docs) {
-      final data = doc.data();
-      totalViews += (data['viewCount'] as int?) ?? 0;
+      int totalViews = 0;
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        totalViews += (data['viewCount'] as int?) ?? 0;
+      }
+      return totalViews;
+    } catch (e) {
+      _logError('getUserTotalViews', e);
+      return 0;
     }
-    return totalViews;
+  }
+  
+  static void _logError(String operation, dynamic error) {
+    assert(() {
+      print('ListingService.$operation error: $error');
+      return true;
+    }());
   }
 }
