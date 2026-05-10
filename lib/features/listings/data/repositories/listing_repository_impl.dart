@@ -1,0 +1,76 @@
+import '../entities/listing_entity.dart';
+import '../repositories/listing_repository.dart';
+import '../../../../core/errors/failures.dart';
+import '../datasources/listing_firestore_datasource.dart';
+
+/// Listing repository implementation
+class ListingRepositoryImpl implements ListingRepository {
+  final ListingFirestoreDataSource _dataSource;
+
+  ListingRepositoryImpl(this._dataSource);
+
+  @override
+  Future<({Listing?, Failure?}) getListing(String id) {
+    return _dataSource.getListing(id);
+  }
+
+  @override
+  Stream<List<Listing>> getListings({
+    String? category,
+    int limit = 20,
+  }) {
+    return _dataSource.getListings(category: category, limit: limit);
+  }
+
+  @override
+  Future<({String? id, Failure?}) createListing({
+    required String title,
+    required String description,
+    required double price,
+    String? imageUrl,
+    String? category,
+    String? location,
+  }) {
+    return _dataSource.createListing(
+      title: title,
+      description: description,
+      price: price,
+      imageUrl: imageUrl,
+      category: category,
+      location: location,
+    );
+  }
+
+  @override
+  Future<Failure?> updateListing({
+    required String id,
+    String? title,
+    String? description,
+    double? price,
+    String? imageUrl,
+    String? category,
+    String? location,
+    ListingStatus? status,
+  }) {
+    return _dataSource.updateListing(
+      id: id,
+      title: title,
+      description: description,
+      price: price,
+      imageUrl: imageUrl,
+      category: category,
+      location: location,
+      status: status,
+    );
+  }
+
+  @override
+  Future<Failure?> deleteListing(String id) {
+    return _dataSource.deleteListing(id);
+  }
+
+  @override
+  Stream<List<Listing>> searchListings(String query, {int limit = 20}) {
+    return _dataSource.searchListings(query, limit: limit);
+  }
+}
