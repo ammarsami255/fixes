@@ -5,6 +5,7 @@ import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
+import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
@@ -208,19 +209,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else if (type == 'listing' && actionData != null) {
       final listingId = actionData['listingId'] as String?;
       if (listingId != null && context.mounted) {
-        final doc = await FirebaseFirestore.instance
-            .collection('listings')
-            .doc(listingId)
-            .get();
-        final item = doc.data();
-        if (!doc.exists || item == null || !context.mounted) return;
+        final result = await getIt<ListingRepository>().getListing(listingId);
+        if (result.listing == null || !context.mounted) return;
 
-        item['id'] = doc.id;
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) =>
-                ServiceDetailScreen(item: item, onRequireLogin: () async {}),
+                ServiceDetailScreen(item: result.listing!.toMap(), onRequireLogin: () async {}),
           ),
         );
       }
