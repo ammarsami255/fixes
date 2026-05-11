@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import '../../domain/entities/chat_entity.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../../../core/errors/failures.dart';
