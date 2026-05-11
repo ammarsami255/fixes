@@ -487,11 +487,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ]);
         }
         // Fetch actual listings
-        return FutureBuilder<List<({Listing? listing, Failure? failure})>(
+        return FutureBuilder<List<({Listing? listing, Failure? failure})>>(
           future: Future.wait(
-            favoriteIds.map(
-              (id) => getIt<ListingRepository>().getListing(id),
-            ),
+            favoriteIds.map((id) => getIt<ListingRepository>().getListing(id)),
           ),
           builder: (c, s) {
             if (s.connectionState == ConnectionState.waiting) {
@@ -499,7 +497,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Center(child: CircularProgressIndicator()),
               ]);
             }
-            final listings = s.data
+            final listings =
+                s.data
                     ?.where((r) => r.listing != null)
                     .map((r) => r.listing!)
                     .toList() ??
@@ -527,9 +526,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () async {
                       Navigator.pop(context); // Close sheet
                       // Get listing data first
-                      final result = await getIt<ListingRepository>().getListing(
-                        listingId,
-                      );
+                      final result = await getIt<ListingRepository>()
+                          .getListing(listingId);
                       if (result.listing != null && mounted) {
                         Navigator.push(
                           context,
@@ -575,7 +573,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   maxLines: 1,
                                 ),
                                 Text(
-                                  listing.category,
+                                  listing.category ?? '',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondary,
@@ -914,7 +912,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     // Stats - with loading state to prevent showing 0 during stream
                     StreamBuilder<List<Listing>>(
-                      stream: getIt<ListingRepository>().getMyListings(user.uid),
+                      stream: getIt<ListingRepository>().getMyListings(
+                        user.uid,
+                      ),
                       builder: (context, snap) {
                         // Show loading - never show 0
                         if (snap.connectionState == ConnectionState.waiting) {
