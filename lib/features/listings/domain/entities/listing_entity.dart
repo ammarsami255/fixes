@@ -4,6 +4,8 @@ import 'package:equatable/equatable.dart';
 class Listing extends Equatable {
   final String id;
   final String userId;
+  final String userName;
+  final String phone;
   final String title;
   final String description;
   final double price;
@@ -18,6 +20,8 @@ class Listing extends Equatable {
   const Listing({
     required this.id,
     required this.userId,
+    required this.userName,
+    required this.phone,
     required this.title,
     required this.description,
     required this.price,
@@ -34,6 +38,8 @@ class Listing extends Equatable {
   List<Object?> get props => [
         id,
         userId,
+        userName,
+        phone,
         title,
         description,
         price,
@@ -49,6 +55,8 @@ class Listing extends Equatable {
   Map<String, dynamic> toMap() => {
         'id': id,
         'userId': userId,
+        'userName': userName,
+        'phone': phone,
         'title': title,
         'description': description,
         'price': price,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
+import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 
 class AddServiceScreen extends StatefulWidget {
   const AddServiceScreen({super.key, this.onClose});
@@ -101,8 +103,23 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       // Normalize and combine country code with phone number
       final normalized = _normalizePhone(_phoneCtrl.text.trim(), _countryCode);
       final fullPhone = '$_countryCode$normalized';
+      
+      // Get user name - from Firebase Auth displayName or from UserRepository
+      String nameToSave = FirebaseAuth.instance.currentUser?.displayName ?? '';
+      if (nameToSave.isEmpty) {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid != null) {
+          final userResult = await getIt<UserRepository>().getUserProfile(uid);
+          nameToSave = userResult.user?.name ?? '';
+        }
+      }
+      if (nameToSave.isEmpty) {
+        nameToSave = FirebaseAuth.instance.currentUser?.email?.split('@').first ?? 'User';
+      }
 
       final result = await getIt<ListingRepository>().createListing(
+        userName: nameToSave,
+        phone: fullPhone,
         title: _titleCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         price: _priceCtrl.text.trim().isEmpty

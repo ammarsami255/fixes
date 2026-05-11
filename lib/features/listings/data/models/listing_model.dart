@@ -7,6 +7,8 @@ class ListingModel extends Listing {
   const ListingModel({
     required super.id,
     required super.userId,
+    required super.userName,
+    required super.phone,
     required super.title,
     required super.description,
     required super.price,
@@ -25,6 +27,8 @@ class ListingModel extends Listing {
     return ListingModel(
       id: doc.id,
       userId: data?['userId'] as String? ?? '',
+      userName: data?['userName'] as String? ?? '',
+      phone: data?['phone'] as String? ?? '',
       title: data?['title'] as String? ?? '',
       description: data?['description'] as String? ?? '',
       price: (data?['price'] as num?)?.toDouble() ?? 0.0,
@@ -46,6 +50,8 @@ class ListingModel extends Listing {
   Listing toEntity() => Listing(
         id: id,
         userId: userId,
+        userName: userName,
+        phone: phone,
         title: title,
         description: description,
         price: price,

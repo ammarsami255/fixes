@@ -69,6 +69,8 @@ class ListingFirestoreDataSource {
 
   /// Create listing
   Future<({String? id, Failure? failure})> createListing({
+    required String userName,
+    required String phone,
     required String title,
     required String description,
     required double price,
@@ -90,6 +92,8 @@ class ListingFirestoreDataSource {
     try {
       final docRef = await _listingsCollection.add({
         'userId': userId,
+        'userName': userName,
+        'phone': phone,
         'title': title,
         'description': description,
         'price': price,

@@ -19,6 +19,8 @@ abstract class ListingRepository {
 
   /// Create listing
   Future<({String? id, Failure? failure})> createListing({
+    required String userName,
+    required String phone,
     required String title,
     required String description,
     required double price,

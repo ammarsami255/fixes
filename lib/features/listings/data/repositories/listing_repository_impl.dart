@@ -28,6 +28,8 @@ class ListingRepositoryImpl implements ListingRepository {
 
   @override
   Future<({String? id, Failure? failure})> createListing({
+    required String userName,
+    required String phone,
     required String title,
     required String description,
     required double price,
@@ -36,6 +38,8 @@ class ListingRepositoryImpl implements ListingRepository {
     String? location,
   }) {
     return _dataSource.createListing(
+      userName: userName,
+      phone: phone,
       title: title,
       description: description,
       price: price,
