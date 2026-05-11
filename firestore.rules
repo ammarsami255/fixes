@@ -90,6 +90,10 @@ service cloud.firestore {
     
     match /notifications/{userId} {
       allow read, write: if isItemOwner(userId);
+      
+      match /items/{notificationId} {
+        allow read, write: if isItemOwner(userId);
+      }
     }
 
     // ==================== SUPPORT ====================
