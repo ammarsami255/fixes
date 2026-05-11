@@ -75,7 +75,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (result.failure != null) {
       emit(AuthError(result.failure!.message));
-      emit(AuthUnauthenticated());
       return;
     }
 
@@ -93,7 +92,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (result.failure != null) {
       emit(AuthError(result.failure!.message));
-      emit(AuthUnauthenticated());
       return;
     }
 
@@ -114,7 +112,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (result.failure != null) {
       emit(AuthError(result.failure!.message));
-      emit(AuthUnauthenticated());
       return;
     }
 
