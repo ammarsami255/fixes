@@ -138,6 +138,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       final result = await getIt<ChatRepository>().getOrCreateChat(
         otherUserId: sellerId,
         listingId: widget.item['id'] as String?,
+        otherUserName: widget.item['userName'] as String?,
       );
       if (result.failure != null) {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(

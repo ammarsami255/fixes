@@ -19,15 +19,15 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
+    String? otherUserName,
   }) async {
-    // Fetch other user's name to pass to datasource
-    final otherUserResult = await getIt<UserRepository>().getUserProfile(otherUserId);
-    final otherUserName = otherUserResult.user?.name ?? 'User';
+    // Use provided name, or fetch from UserRepository if not provided
+    final nameToUse = otherUserName ?? (await getIt<UserRepository>().getUserProfile(otherUserId)).user?.name;
     
     return _dataSource.getOrCreateChat(
       otherUserId: otherUserId,
       listingId: listingId,
-      otherUserName: otherUserName,
+      otherUserName: nameToUse,
     );
   }
 

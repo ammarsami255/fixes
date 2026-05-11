@@ -11,6 +11,7 @@ abstract class ChatRepository {
   Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
+    String? otherUserName,
   });
 
   /// Get all chats for current user with pagination
