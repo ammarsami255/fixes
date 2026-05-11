@@ -242,6 +242,7 @@ class ChatFirestoreDataSource {
         );
       }
       await batch.commit();
+      await resetUnreadCount(chatId);
       return null;
     } catch (e) {
       return ServerFailure(
