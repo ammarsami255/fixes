@@ -10,6 +10,7 @@ import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 import 'package:el_moza3/features/user_profile/domain/entities/user_profile.dart';
 import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
+import 'package:el_moza3/core/errors/failures.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
