@@ -17,7 +17,8 @@ service cloud.firestore {
     // ==================== USER PROFILES ====================
     
     match /users/{userId} {
-      allow read, write: if isItemOwner(userId);
+      allow read: if hasAuth();
+      allow write: if isItemOwner(userId);
     }
 
     // ==================== LISTINGS ====================
