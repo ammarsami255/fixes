@@ -45,8 +45,8 @@ service cloud.firestore {
       allow get: if hasAuth()
         && (resource == null || request.auth.uid in resource.data.participants);
       
-      // Collection query (list): Must be participant
-      allow list: if hasAuth() && (resource == null || request.auth.uid in resource.data.participants);
+      // Collection query (list): Must use arrayContains query
+      allow list: if false;
       
       // Create: must have exactly 2 participants and be one of them
       allow create: if hasAuth()

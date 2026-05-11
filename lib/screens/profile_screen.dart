@@ -8,6 +8,7 @@ import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart';
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
+import 'package:el_moza3/features/user_profile/domain/entities/user_profile.dart';
 import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
@@ -464,17 +465,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSavedSheet(String userId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+    return FutureBuilder<({UserProfile? user, Failure? failure})>(
+      future: getIt<UserRepository>().getUserProfile(userId),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return _buildSheetContainer([
             const Center(child: CircularProgressIndicator()),
           ]);
         }
-        final data = snap.data?.data() as Map<String, dynamic>?;
-        final favoriteIds =
-            (data?['favoriteIds'] as List<dynamic>?)?.cast<String>() ?? [];
+        final user = snap.data?.user;
+        final favoriteIds = user?.favoriteIds ?? [];
         if (favoriteIds.isEmpty) {
           return _buildSheetContainer([
             const Center(
@@ -486,13 +486,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ]);
         }
         // Fetch actual listings
-        return FutureBuilder<List<DocumentSnapshot>>(
+        return FutureBuilder<List<({Listing? listing, Failure? failure})>(
           future: Future.wait(
             favoriteIds.map(
-              (id) => FirebaseFirestore.instance
-                  .collection('listings')
-                  .doc(id)
-                  .get(),
+              (id) => getIt<ListingRepository>().getListing(id),
             ),
           ),
           builder: (c, s) {
@@ -501,7 +498,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Center(child: CircularProgressIndicator()),
               ]);
             }
-            final listings = s.data?.where((d) => d.exists).toList() ?? [];
+            final listings = s.data
+                    ?.where((r) => r.listing != null)
+                    .map((r) => r.listing!)
+                    .toList() ??
+                [];
             if (listings.isEmpty) {
               return _buildSheetContainer([
                 const Center(
@@ -517,8 +518,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 itemCount: listings.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (ctx, idx) {
-                  final d = listings[idx].data() as Map<String, dynamic>?;
-                  final listingId = listings[idx].id;
+                  final listing = listings[idx];
+                  final listingId = listing.id;
                   return GestureDetector(
                     onTap: () async {
                       Navigator.pop(context); // Close sheet
@@ -564,21 +565,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  d?['title'] ?? '',
+                                  listing.title,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
                                   maxLines: 1,
                                 ),
                                 Text(
-                                  d?['category'] ?? '',
+                                  listing.category,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
                                 Text(
-                                  d?['price'] ?? '',
+                                  listing.price.toString(),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.primary,
@@ -1078,7 +1079,7 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? _userData;
-  List<Map<String, dynamic>> _listings = [];
+  List<Listing> _listings = [];
   bool _isLoading = true;
   int _totalViews = 0;
 
@@ -1093,18 +1094,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     try {
       final userListings = await _getUserListings();
-      final userName = userListings.isNotEmpty
-          ? userListings.first['userName'] as String? ?? 'User'
-          : 'User';
+      // Note: userName comes from user data, not listing
+      final userName = 'User';
 
       int totalViews = 0;
       for (final listing in userListings) {
-        final viewCountRaw = listing['viewCount'];
-        totalViews += viewCountRaw is int
-            ? viewCountRaw
-            : viewCountRaw is num
-                ? viewCountRaw.toInt()
-                : 0;
+        totalViews += listing.viewCount;
       }
 
       if (mounted) {
@@ -1122,18 +1117,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _getUserListings() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('listings')
-        .where('userId', isEqualTo: widget.userId)
-        .orderBy('createdAt', descending: true)
-        .get();
-
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      data['id'] = doc.id;
-      return data;
-    }).toList();
+  Future<List<Listing>> _getUserListings() async {
+    final stream = getIt<ListingRepository>().getMyListings(widget.userId);
+    return stream.first;
   }
 
   @override
@@ -1275,7 +1261,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     ],
   );
 
-  Widget _listingCard(Map<String, dynamic> listing) {
+  Widget _listingCard(Listing listing) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1302,19 +1288,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  listing['title'] ?? '',
+                  listing.title,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                   maxLines: 1,
                 ),
                 Text(
-                  listing['category'] ?? '',
+                  listing.category ?? '',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 Text(
-                  listing['price'] ?? '',
+                  listing.price.toString(),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
