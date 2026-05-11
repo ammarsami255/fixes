@@ -1,6 +1,7 @@
 import '../../domain/entities/chat_entity.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../user_profile/domain/repositories/user_repository.dart';
 import '../datasources/chat_firestore_datasource.dart';
 
 /// Chat repository implementation - implements abstract repository from domain
@@ -18,10 +19,15 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<({String? chatId, Failure? failure})> getOrCreateChat({
     required String otherUserId,
     String? listingId,
-  }) {
+  }) async {
+    // Fetch other user's name to pass to datasource
+    final otherUserResult = await getIt<UserRepository>().getUserProfile(otherUserId);
+    final otherUserName = otherUserResult.user?.name ?? 'User';
+    
     return _dataSource.getOrCreateChat(
       otherUserId: otherUserId,
       listingId: listingId,
+      otherUserName: otherUserName,
     );
   }
 

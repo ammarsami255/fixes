@@ -516,6 +516,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             }
             return _buildSheetContainer([
               ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: listings.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (ctx, idx) {

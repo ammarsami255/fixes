@@ -81,12 +81,21 @@ class ChatFirestoreDataSource {
         }
       }
 
-      // Create new chat
+      // Create new chat - fetch current user's name from Firestore
+      String currentUserName = _auth.currentUser?.displayName ?? _auth.currentUser?.email?.split('@').first ?? 'User';
+      try {
+        final userDoc = await _firestore.collection('users').doc(uid).get();
+        if (userDoc.exists && userDoc.data()?['name'] != null) {
+          currentUserName = userDoc.data()!['name'] as String;
+        }
+      } catch (_) {
+        // Fall back to displayName/email if Firestore fetch fails
+      }
+      
       await _chatsCollection.doc(chatId).set({
         'participants': participants,
         'participantNames': {
-          uid:
-              _auth.currentUser?.displayName ?? _auth.currentUser?.email?.split('@').first ?? 'User',
+          uid: currentUserName,
           otherUserId: otherUserName ?? 'User',
         },
         if (listingId != null) 'listingId': listingId,

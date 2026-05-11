@@ -23,7 +23,18 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _chatsStream = getIt<ChatRepository>().getMyChats(limit: 20);
+    // Listen to auth state changes to properly initialize stream
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (mounted) {
+        setState(() {
+          if (user != null) {
+            _chatsStream = getIt<ChatRepository>().getMyChats(limit: 20);
+          } else {
+            _chatsStream = Stream.value([]);
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -376,6 +387,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   DateTime? _otherUserLastSeen;
   StreamSubscription? _presenceSub;
   late Stream<List<Message>> _messagesStream;
+  
+  // Track IDs already marked as seen to prevent infinite loop
+  final Set<String> _markedSeenIds = {};
 
   @override
   void initState() {
@@ -515,8 +529,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 final currentUserId = getIt<AuthRepository>().currentUserId;
                 final unreadMessageIds = messages
                     .where((m) => m.senderId != currentUserId && m.isSeen == false)
+                    .where((m) => !_markedSeenIds.contains(m.id))
                     .map((m) => m.id)
                     .toList();
+
+                // Add these IDs to the marked set before calling
+                _markedSeenIds.addAll(unreadMessageIds);
 
                 if (unreadMessageIds.isNotEmpty) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {

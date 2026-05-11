@@ -46,8 +46,8 @@ service cloud.firestore {
       allow get: if hasAuth()
         && (resource == null || request.auth.uid in resource.data.participants);
       
-      // Collection query (list): Must use arrayContains query
-      allow list: if false;
+      // Collection query (list): Must be authenticated
+      allow list: if hasAuth() && request.auth.uid != null;
       
       // Create: must have exactly 2 participants and be one of them
       allow create: if hasAuth()
@@ -78,9 +78,9 @@ service cloud.firestore {
       allow create: if hasAuth()
         && request.resource.data.senderId == request.auth.uid;
       
-      // Update: Only sender can update their own messages
+      // Update: Participants can update (for isSeen/seenAt fields)
       allow update: if hasAuth()
-        && resource.data.senderId == request.auth.uid;
+        && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
       
       // Delete: Only sender can delete their own messages
       allow delete: if hasAuth()
