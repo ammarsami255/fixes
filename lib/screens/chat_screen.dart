@@ -197,7 +197,7 @@ class _ChatTileState extends State<_ChatTile> {
     final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
     final result = await getIt<UserRepository>().getUserProfile(otherUserId);
     if (mounted && result.user != null) {
-      setState(() => _userName = result.user!.name);
+      if (result.user != null) setState(() => _userName = result.user!.name);
     }
   }
 
@@ -391,12 +391,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     try {
       final result = await getIt<UserRepository>().getUserProfile(widget.otherUserId);
       if (result.user != null) {
-        setState(() {
-          _otherUserName = result.user!.name;
-          _otherUserProfileImage = result.user!.profileImage;
-          _isLoading = false;
-        });
-        return;
+        _otherUserName = result.user!.name;
+        _otherUserProfileImage = result.user!.profileImage;
       }
     } catch (e) {}
     if (mounted) setState(() => _isLoading = false);
