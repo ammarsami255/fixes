@@ -7,6 +7,7 @@ class ChatModel extends Chat {
   const ChatModel({
     required super.id,
     required super.participantIds,
+    super.participantNames,
     super.listingId,
     super.lastMessage,
     super.lastMessageTime,
@@ -22,6 +23,7 @@ class ChatModel extends Chat {
     return ChatModel(
       id: doc.id,
       participantIds: (data?['participants'] as List?)?.cast<String>() ?? [],
+      participantNames: (data?['participantNames'] as Map?)?.cast<String, String>() ?? {},
       listingId: data?['listingId'] as String?,
       lastMessage: data?['lastMessage'] as String?,
       lastMessageTime: data?['lastMessageTime'] != null
@@ -57,6 +59,7 @@ class ChatModel extends Chat {
   Chat toEntity() => Chat(
         id: id,
         participantIds: participantIds,
+        participantNames: participantNames,
         listingId: listingId,
         lastMessage: lastMessage,
         lastMessageTime: lastMessageTime,

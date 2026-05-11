@@ -207,8 +207,16 @@ class _ChatTileState extends State<_ChatTile> {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     final otherUserId = widget.chat.getOtherParticipantId(currentUserId);
     final result = await getIt<UserRepository>().getUserProfile(otherUserId);
-    if (mounted && result.user != null) {
-      if (result.user != null) setState(() => _userName = result.user!.name);
+    if (mounted) {
+      if (result.user != null && result.user!.name.isNotEmpty) {
+        setState(() => _userName = result.user!.name);
+      } else {
+        // Fall back to name from chat document
+        final chatName = widget.chat.participantNames[otherUserId];
+        if (chatName != null && chatName.isNotEmpty) {
+          setState(() => _userName = chatName);
+        }
+      }
     }
   }
 
@@ -404,9 +412,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _loadParticipantDetails() async {
     try {
       final result = await getIt<UserRepository>().getUserProfile(widget.otherUserId);
-      if (result.user != null) {
+      if (result.user != null && result.user!.name.isNotEmpty) {
         _otherUserName = result.user!.name;
         _otherUserProfileImage = result.user!.profileImage;
+      } else {
+        // Fall back to name from chat document
+        try {
+          final chatResult = await getIt<ChatRepository>().getChat(widget.chatId);
+          if (chatResult.chat != null) {
+            _otherUserName = chatResult.chat!.participantNames[widget.otherUserId] ?? 'User';
+          }
+        } catch (_) {}
       }
     } catch (e) {}
     if (mounted) setState(() => _isLoading = false);
