@@ -38,7 +38,18 @@ class ChatModel extends Chat {
             ),
           ) ??
           {},
-      unreadCount: (data?['unreadCount'] as Map?)?.cast<String, int>() ?? {},
+      unreadCount: () {
+        final map = <String, int>{};
+        if (data != null) {
+          data.forEach((key, value) {
+            if (key.startsWith('unreadCount_')) {
+              final uid = key.replaceFirst('unreadCount_', '');
+              map[uid] = (value as num?)?.toInt() ?? 0;
+            }
+          });
+        }
+        return map;
+      }(),
     );
   }
 
