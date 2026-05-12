@@ -415,6 +415,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _messageCtrl.dispose();
     _scrollCtrl.dispose();
     _presenceSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadParticipantDetails() async {
+    try {
+      final result = await getIt<UserRepository>().getUserProfile(widget.otherUserId);
+      if (result.user != null && result.user!.name.isNotEmpty) {
+        _otherUserName = result.user!.name;
+        _otherUserProfileImage = result.user!.profileImage;
+        _isOtherUserOnline = result.user!.isOnline;
+        _otherUserLastSeen = result.user!.lastSeen;
+      } else {
+        // Fall back to name from chat document
+        try {
+          final chatResult = await getIt<ChatRepository>().getChat(widget.chatId);
+          if (chatResult.chat != null) {
+            _otherUserName = chatResult.chat!.participantNames[widget.otherUserId] ?? 'User';
+          }
+        } catch (_) {}
+      }
+    } catch (e) {}
+    if (mounted) setState(() => _isLoading = false);
   }
 
   String _getLastSeenText() {
