@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:el_moza3/core/constants/app_constants.dart';
@@ -6,7 +7,6 @@ import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart' show Listing;
-import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
 
@@ -48,14 +48,24 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
 
   Future<void> _loadSellerData() async {
     try {
-      final userResult = await getIt<UserRepository>().getUserProfile(widget.sellerId);
-      if (userResult.user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.sellerId)
+          .get();
+      
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
         if (mounted) {
           setState(() {
-            _sellerName = userResult.user!.name.isNotEmpty
-                ? userResult.user!.name
+            _sellerName = (data['name'] as String?)?.isNotEmpty == true
+                ? data['name'] as String
                 : widget.sellerName;
-            _memberSince = userResult.user!.createdAt;
+            final createdAt = data['createdAt';
+            if (createdAt != null && createdAt is Timestamp) {
+              _memberSince = (createdAt as Timestamp).toDate();
+            } else if (createdAt != null) {
+              _memberSince = DateTime.tryParse(createdAt.toString());
+            }
           });
         }
       }
@@ -204,7 +214,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                           const SizedBox(height: 8),
                           if (_memberSince != null)
                             Text(
-                              'عضو منذ $_memberSince',
+                              _formatMemberSince(),
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: AppColors.textSecondary,
@@ -243,7 +253,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                                 ),
                               ),
                             ),
-                          SizedBox(height: bottomPadding + 60),
+                          SizedBox(height: bottomPadding + 80),
                         ],
                       ),
                     ),
