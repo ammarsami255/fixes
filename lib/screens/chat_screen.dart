@@ -9,18 +9,11 @@ import 'package:el_moza3/features/chat/data/datasources/chat_firestore_datasourc
 import 'package:el_moza3/features/chat/data/models/chat_model.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
+import 'package:el_moza3/utils/time_utils.dart';
 
 String _formatChatTileTime(DateTime? timestamp) {
   if (timestamp == null) return '';
-  final now = DateTime.now();
-  final time = timestamp;
-  final diff = now.difference(time);
-
-  if (diff.inMinutes < 1) return 'Now';
-  if (diff.inHours < 1) return '${diff.inMinutes}m';
-  if (diff.inDays < 1) return '${diff.inHours}h';
-  if (diff.inDays < 7) return '${diff.inDays}d';
-  return '${time.day}/${time.month}';
+  return TimeUtils.formatLastSeen(timestamp);
 }
 
 class ChatScreen extends StatefulWidget {
@@ -404,54 +397,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.initState();
     _messagesStream = getIt<ChatRepository>().getMessages(widget.chatId);
     _loadParticipantDetails();
-    // _setupPresenceListener(); // TODO: implement presence
+    // Set current user as online when entering chat
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId != null) {
+      getIt<UserRepository>().setUserOnlineStatus(currentUserId, true);
+    }
     getIt<ChatRepository>().resetUnreadCount(widget.chatId);
-  }
-
-
-  Future<void> _loadParticipantDetails() async {
-    try {
-      final result = await getIt<UserRepository>().getUserProfile(widget.otherUserId);
-      if (result.user != null && result.user!.name.isNotEmpty) {
-        _otherUserName = result.user!.name;
-        _otherUserProfileImage = result.user!.profileImage;
-      } else {
-        // Fall back to name from chat document
-        try {
-          final chatResult = await getIt<ChatRepository>().getChat(widget.chatId);
-          if (chatResult.chat != null) {
-            _otherUserName = chatResult.chat!.participantNames[widget.otherUserId] ?? 'User';
-          }
-        } catch (_) {}
-      }
-    } catch (e) {}
-    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   void dispose() {
+    // Set current user as offline when leaving chat
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId != null) {
+      getIt<UserRepository>().setUserOnlineStatus(currentUserId, false);
+    }
     _messageCtrl.dispose();
     _scrollCtrl.dispose();
     _presenceSub?.cancel();
-    super.dispose();
   }
 
   String _getLastSeenText() {
-    if (_otherUserLastSeen == null) return 'offline';
-    final now = DateTime.now();
-    final diff = now.difference(_otherUserLastSeen!);
-
-    if (diff.inMinutes < 1) {
-      return 'last seen just now';
-    } else if (diff.inMinutes < 60) {
-      return 'last seen ${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      return 'last seen ${diff.inHours}h ago';
-    } else if (diff.inDays == 1) {
-      return 'last seen yesterday';
-    } else {
-      return 'last seen ${diff.inDays}d ago';
-    }
+    return TimeUtils.getPresenceStatus(
+      isOnline: _isOtherUserOnline,
+      lastSeen: _otherUserLastSeen,
+    );
   }
 
   Future<void> _sendMessage() async {
@@ -516,7 +486,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          _isOtherUserOnline ? 'online' : _getLastSeenText(),
+                          _isOtherUserOnline ? 'متصل الآن' : _getLastSeenText(),
                           style: TextStyle(
                             color: _isOtherUserOnline
                                 ? Colors.green
@@ -723,8 +693,7 @@ class _MessageBubble extends StatelessWidget {
 
   String _formatTime(DateTime? timestamp) {
     if (timestamp == null) return '';
-    final time = timestamp;
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    return TimeUtils.formatTime12Hour(timestamp);
   }
 
   Widget _buildSeenIcon(bool seen) {
