@@ -1,7 +1,7 @@
-import 'package:get_it/get_it.dart';
 import '../../domain/entities/chat_entity.dart';
 import '../../domain/repositories/chat_repository.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../infrastructure/di/injection.dart';
 import '../../../user_profile/domain/repositories/user_repository.dart';
 import '../datasources/chat_firestore_datasource.dart';
 

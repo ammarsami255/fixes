@@ -10,6 +10,19 @@ import 'package:el_moza3/features/chat/data/models/chat_model.dart';
 import 'package:el_moza3/features/auth/domain/repositories/auth_repository.dart';
 import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 
+String _formatChatTileTime(DateTime? timestamp) {
+  if (timestamp == null) return '';
+  final now = DateTime.now();
+  final time = timestamp;
+  final diff = now.difference(time);
+
+  if (diff.inMinutes < 1) return 'Now';
+  if (diff.inHours < 1) return '${diff.inMinutes}m';
+  if (diff.inDays < 1) return '${diff.inHours}h';
+  if (diff.inDays < 7) return '${diff.inDays}d';
+  return '${time.day}/${time.month}';
+}
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -319,7 +332,7 @@ class _ChatTileUI extends StatelessWidget {
                         ),
                       const SizedBox(width: 4),
                       Text(
-                        _formatTime(lastTime),
+                        _formatChatTileTime(lastTime),
                         style: TextStyle(
                           fontSize: 11,
                           color: unreadCount > 0
