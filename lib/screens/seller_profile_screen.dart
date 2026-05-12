@@ -5,7 +5,7 @@ import 'package:el_moza3/core/constants/app_constants.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart';
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
-import 'package:el_moza3/features/listings/domain/entities/listing.dart';
+import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart' show Listing;
 import 'package:el_moza3/features/user_profile/domain/repositories/user_repository.dart';
 import 'package:el_moza3/screens/chat_screen.dart';
 import 'package:el_moza3/screens/service_detail_screen.dart';
