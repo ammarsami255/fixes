@@ -151,13 +151,13 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Scaffold(
       backgroundColor: AppColors.background2,
-      body: Builder(
-        builder: (context) => SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -243,7 +243,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                                 ),
                               ),
                             ),
-                          SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
+                          SizedBox(height: bottomPadding + 60),
                         ],
                       ),
                     ),
