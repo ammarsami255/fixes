@@ -77,7 +77,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
   }
 
   String _formatMemberSince() {
-    if (_memberSince == null) return '';
+    if (_memberSince == null) return 'عضو منذ فترة';
     final months = [
       'يناير',
       'فبراير',
@@ -92,7 +92,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
       'نوفمبر',
       'ديسمبر'
     ];
-    return '${_memberSince!.day} ${months[_memberSince!.month - 1]} ${_memberSince!.year}';
+    return 'عضو منذ ${months[_memberSince!.month - 1]} ${_memberSince!.year}';
   }
 
   Future<void> _openChat() async {
@@ -153,9 +153,11 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background2,
-      body: SafeArea(
-        child: Column(
-          children: [
+      body: Builder(
+        builder: (context) => SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -241,7 +243,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
                                 ),
                               ),
                             ),
-                          const SizedBox(height: 100),
+                          SizedBox(height: MediaQuery.of(context).padding.bottom + 60),
                         ],
                       ),
                     ),
