@@ -56,8 +56,15 @@ class _LoginScreenState extends State<LoginScreen> {
       listener: (context, state) {
         if (state is AuthError) {
           _showError(state.message);
+          setState(() => _loading = false);
+        } else if (state is AuthAuthenticated) {
+          setState(() => _loading = false);
+          if (state.needsVerification) {
+            Navigator.pushNamed(context, '/verify', arguments: state.user.email);
+          } else {
+            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          }
         }
-        setState(() => _loading = false);
       },
       child: Scaffold(
         backgroundColor: AppColors.background2,

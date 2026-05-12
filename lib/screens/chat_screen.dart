@@ -354,19 +354,6 @@ class _ChatTileUI extends StatelessWidget {
       ),
     );
   }
-
-  String _formatTime(DateTime? timestamp) {
-    if (timestamp == null) return '';
-    final now = DateTime.now();
-    final time = timestamp;
-    final diff = now.difference(time);
-
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m';
-    if (diff.inDays < 1) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${time.day}/${time.month}';
-  }
 }
 
 class ChatDetailScreen extends StatefulWidget {
@@ -732,11 +719,11 @@ class _MessageBubble extends StatelessWidget {
       return const Icon(
         Icons.done_all_rounded,
         size: 14,
-        color: Colors.lightBlueAccent,
+        color: Colors.blue,
       );
     } else {
       return const Icon(
-        Icons.done_all_rounded,
+        Icons.done_rounded,
         size: 14,
         color: Colors.white70,
       );

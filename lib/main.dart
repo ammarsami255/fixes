@@ -11,6 +11,7 @@ import 'package:el_moza3/features/auth/presentation/bloc/auth_state_event.dart';
 import 'package:el_moza3/features/auth/presentation/screens/splash_screen.dart';
 import 'package:el_moza3/features/auth/presentation/screens/login_screen.dart';
 import 'package:el_moza3/features/auth/presentation/screens/register_screen.dart';
+import 'package:el_moza3/screens/otp_verification_screen.dart';
 import 'package:el_moza3/infrastructure/di/injection.dart';
 import 'firebase_options.dart';
 
@@ -51,7 +52,11 @@ class ElMoza3App extends StatelessWidget {
         routes: {
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),
-          '/home': (_) => const HomeScreen(), // Connect to existing home screen
+          '/verify': (context) {
+            final email = ModalRoute.of(context)?.settings.arguments as String? ?? '';
+            return OtpVerificationScreen(email: email);
+          },
+          '/home': (_) => const HomeScreen(),
         },
       ),
     );
@@ -71,7 +76,10 @@ class AuthWrapper extends StatelessWidget {
         }
         
         if (state is AuthAuthenticated) {
-          // Navigate to existing home screen
+          if (state.needsVerification) {
+            final email = state.user.email ?? '';
+            return OtpVerificationScreen(email: email);
+          }
           return const HomeScreen();
         }
         

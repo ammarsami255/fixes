@@ -68,6 +68,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (state is AuthError) {
           _showError(state.message);
           setState(() => _loading = false);
+        } else if (state is AuthAuthenticated) {
+          setState(() => _loading = false);
+          if (state.needsVerification) {
+            Navigator.pushNamed(context, '/verify', arguments: state.user.email);
+          } else {
+            Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+          }
         }
       },
       child: Scaffold(
