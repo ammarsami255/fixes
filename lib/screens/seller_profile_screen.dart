@@ -8,7 +8,6 @@ import 'package:el_moza3/features/chat/domain/repositories/chat_repository.dart'
 import 'package:el_moza3/features/listings/domain/repositories/listing_repository.dart';
 import 'package:el_moza3/features/listings/domain/entities/listing_entity.dart' show Listing;
 import 'package:el_moza3/screens/chat_screen.dart';
-import 'package:el_moza3/screens/service_detail_screen.dart';
 
 class SellerProfileScreen extends StatefulWidget {
   final String sellerId;
@@ -60,11 +59,9 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
             _sellerName = (data['name'] as String?)?.isNotEmpty == true
                 ? data['name'] as String
                 : widget.sellerName;
-            final createdAt = data['createdAt';
+            final createdAt = data['createdAt'];
             if (createdAt != null && createdAt is Timestamp) {
               _memberSince = (createdAt as Timestamp).toDate();
-            } else if (createdAt != null) {
-              _memberSince = DateTime.tryParse(createdAt.toString());
             }
           });
         }
@@ -82,7 +79,9 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
         }
       });
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -108,50 +107,55 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
   Future<void> _openChat() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
     if (user.uid == widget.sellerId) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('لا يمكنك مراسلة نفسك'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يمكنك محادثة نفسك'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoadingChat = true);
 
     try {
-      final result = await getIt<ChatRepository>().getOrCreateChat(
-        otherUserId: widget.sellerId,
-        otherUserName: _sellerName,
-      );
-      if (result.failure != null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.failure!.message)),
+      final chatRepo = getIt<ChatRepository>();
+      final existing = await chatRepo.getChatId(user.uid, widget.sellerId);
+      
+      if (!mounted) return;
+      
+      String? chatId;
+      if (existing != null) {
+        chatId = existing;
+      } else {
+        final newChat = await chatRepo.createChat(
+          participantId: widget.sellerId,
+          participantName: _sellerName,
         );
-        return;
+        chatId = newChat;
       }
-      final chatId = result.chatId;
-      if (chatId == null || !mounted) return;
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChatDetailScreen(chatId: chatId, otherUserId: widget.sellerId),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('تعذر فتح المحادثة'),
-            backgroundColor: AppColors.error,
+      if (chatId != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              chatId: chatId!,
+              otherUserName: _sellerName,
+              otherUserId: widget.sellerId,
+            ),
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر فتح المحادثة'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoadingChat = false);
@@ -159,174 +163,23 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    return Scaffold(
-      backgroundColor: AppColors.background2,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: AppBorders.radiusMedium,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_rounded,
-                        color: AppColors.textPrimary,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          _buildAvatar(),
-                          const SizedBox(height: 16),
-                          Text(
-                            _sellerName,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          if (_memberSince != null)
-                            Text(
-                              _formatMemberSince(),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          const SizedBox(height: 24),
-                          _buildStats(),
-                          const SizedBox(height: 24),
-                          if (_listings.isNotEmpty) ...[
-                            const Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                'إعلانات البائع',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildListingsGrid(),
-                          ] else
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: AppBorders.radiusMedium,
-                              ),
-                              child: const Text(
-                                'لا توجد إعلانات حالياً',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          SizedBox(height: bottomPadding + 80),
-                        ],
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-      bottomSheet: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              offset: const Offset(0, -2),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: _isLoadingChat ? null : _openChat,
-              icon: _isLoadingChat
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      color: Colors.white,
-                    ),
-              label: const Text(
-                'مراسلة البائع',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: AppBorders.radiusMedium,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildAvatar() {
-    final initial = _sellerName.isNotEmpty ? _sellerName[0].toUpperCase() : '?';
     return Container(
-      width: 80,
-      height: 80,
+      width: 100,
+      height: 100,
       decoration: BoxDecoration(
-        color: AppColors.primaryLighter,
+        color: AppColors.surface,
         shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 3,
+        ),
       ),
       child: Center(
         child: Text(
-          initial,
+          _sellerName.isNotEmpty ? _sellerName[0] : '?',
           style: const TextStyle(
-            fontSize: 32,
+            fontSize: 40,
             fontWeight: FontWeight.bold,
             color: AppColors.primary,
           ),
@@ -337,46 +190,36 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
 
   Widget _buildStats() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppBorders.radiusMedium,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildStatItem('$_listingsCount', 'إعلانات'),
-          Container(
-            width: 1,
-            height: 40,
-            color: AppColors.border,
+          Column(
+            children: [
+              Text(
+                '$_listingsCount',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'إعلانات',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
-          _buildStatItem(_formatMemberSince(), 'عضو منذ'),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 
@@ -386,9 +229,9 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
+        childAspectRatio: 0.8,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
       ),
       itemCount: _listings.length,
       itemBuilder: (context, index) {
@@ -402,104 +245,247 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
     final category = listing.category ?? '';
     final price = listing.price.toString();
     final location = listing.location ?? '';
-    final imageUrl = listing.imageUrl;
 
-    return GestureDetector(
-      onTap: () async {
-        final result = await getIt<ListingRepository>().getListing(listing.id);
-        if (result.listing != null && mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ServiceDetailScreen(
-                item: result.listing!.toMap(),
-                onRequireLogin: () async {},
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppBorders.radiusMedium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.background2,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.image_outlined,
+                  size: 40,
+                  color: AppColors.textSecondary.withOpacity(0.5),
+                ),
               ),
             ),
-          );
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppBorders.radiusMedium,
-          boxShadow: AppShadows.small,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLighter,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                child: imageUrl != null && imageUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(12),
-                        ),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(
-                              Icons.image,
-                              color: AppColors.primary,
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.image,
-                          color: AppColors.primary,
-                          size: 32,
-                        ),
-                      ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      category,
-                      style: const TextStyle(
-                        fontSize: 11,
+                const SizedBox(height: 4),
+                Text(
+                  category,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$price ₽',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                if (location.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 12,
                         color: AppColors.textSecondary,
                       ),
-                    ),
-                    const Spacer(),
-                    if (price.isNotEmpty && price != '0')
-                      Text(
-                        '$price ج.م',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Scaffold(
+      backgroundColor: AppColors.background2,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: AppBorders.radiusMedium,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_rounded,
+                            color: AppColors.textPrimary,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          padding: EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            bottom: 80 + bottomPadding,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 16),
+                              _buildAvatar(),
+                              const SizedBox(height: 16),
+                              Text(
+                                _sellerName,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (_memberSince != null)
+                                Text(
+                                  _formatMemberSince(),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              const SizedBox(height: 24),
+                              _buildStats(),
+                              const SizedBox(height: 24),
+                              if (_listings.isNotEmpty) ...[
+                                const Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    'إعلانات البائع',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                _buildListingsGrid(),
+                              ] else
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: AppBorders.radiusMedium,
+                                  ),
+                                  child: const Text(
+                                    'لا توجد إعلانات حالياً',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                ),
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 16 + bottomPadding,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      offset: const Offset(0, -2),
+                      blurRadius: 8,
+                    ),
                   ],
+                ),
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoadingChat ? null : _openChat,
+                    icon: _isLoadingChat
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(Icons.chat_outlined, size: 20),
+                    label: Text(
+                      _isLoadingChat ? 'جاري...' : 'مراسلة البائع',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppBorders.radiusMedium,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
