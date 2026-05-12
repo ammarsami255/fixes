@@ -148,6 +148,30 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       }
       final chatId = result.chatId;
       if (chatId == null || !mounted) return;
+
+      // Build the first message with listing details
+      final title = widget.item['title'] as String? ?? '';
+      final category = widget.item['category'] as String? ?? '';
+      final priceRaw = widget.item['price'];
+      final price = priceRaw is String
+          ? priceRaw
+          : priceRaw is num
+              ? priceRaw.toString()
+              : '';
+      final location = widget.item['location'] as String? ?? '';
+      final firstMessage = 'مرحباً، أنا مهتم بـ $title - $category - السعر: $price ج.م - $location';
+
+      // Send the first message (don't fail chat open if message send fails)
+      try {
+        await getIt<ChatRepository>().sendMessage(
+          chatId: chatId,
+          content: firstMessage,
+        );
+      } catch (_) {
+        // Ignore message send errors, still open chat
+      }
+
+      if (!mounted) return;
       Navigator.push(
         context,
         MaterialPageRoute(
